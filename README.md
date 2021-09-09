@@ -3,6 +3,15 @@
 ## 介绍
 这是一个SQL分页查询方言类库。通过调用相关API，可快速将一个普通SQL转换为一个特定数据库的计数（`COUNT`）SQL或分页查询SQL。通过内置的SQL分析工具类分析实际调用的SQL，方言会生成最优的计数（`COUNT`）SQL或分页查询SQL。
 
+## 数据库支持
+
+数据库     | 支持版本 |     方言实现类
+-----------|---------|-------------------------
+Mysql      | 1.0+    | MySQLPagingDialect
+Oracle     | 1.0+    | OraclePagingDialect
+PostgreSQL | 1.0+    | PostgreSQLPagingDialect
+SQLServer  | 1.0+    | SQLServerPagingDialect
+
 ## 使用说明
 
 以基于Maven项目为例
@@ -40,14 +49,6 @@ try {
 }
 ……
 ```
-## 数据库支持
-
-数据库     | 支持版本 |     方言实现类
------------|---------|-------------------------
-Mysql      | 1.0+    | MySQLPagingDialect
-Oracle     | 1.0+    | OraclePagingDialect
-PostgreSQL | 1.0+    | PostgreSQLPagingDialect
-SQLServer  | 1.0+    | SQLServerPagingDialect
 
 ## API详解
 
