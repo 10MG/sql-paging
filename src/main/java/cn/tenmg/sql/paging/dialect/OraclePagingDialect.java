@@ -33,11 +33,11 @@ public class OraclePagingDialect extends AbstractSQLPagingDialect {
 	}
 
 	@Override
-	public String pageSql(Connection con, String sql, Map<String, ?> params, SQLMetaData sqlMetaData, int pageSize,
+	public String pageSql(Connection con, String namedSql, Map<String, ?> params, SQLMetaData sqlMetaData, int pageSize,
 			long currentPage) throws SQLException {
 		int selectIndex = sqlMetaData.getSelectIndex();
 		if (selectIndex < 0) {// 正常情况下selectIndex不可能<0，但如果用户的确写错了，这里直接返回错误的SQL
-			return sql;
+			return namedSql;
 		} else {
 			if (con.getMetaData().getDatabaseMajorVersion() >= 12) {// 12c以上版本
 				int length = sqlMetaData.getLength(), embedStartIndex = sqlMetaData.getEmbedStartIndex(),
@@ -45,50 +45,52 @@ public class OraclePagingDialect extends AbstractSQLPagingDialect {
 				if (sqlMetaData.getOffsetIndex() > 0 || sqlMetaData.getFetchIndex() > 0) {// 有OFFSET或FETCH子句，直接包装子查询并追加行数限制条件
 					if (embedStartIndex > 0) {
 						if (embedEndIndex < length) {
-							return sql.substring(0, embedStartIndex).concat(SUBQUERY_START)
-									.concat(sql.substring(embedStartIndex, embedEndIndex)).concat(SUBQUERY_END)
-									.concat(newPageEnd(pageSize, currentPage)).concat(sql.substring(embedEndIndex));
+							return namedSql.substring(0, embedStartIndex).concat(SUBQUERY_START)
+									.concat(namedSql.substring(embedStartIndex, embedEndIndex)).concat(SUBQUERY_END)
+									.concat(newPageEnd(pageSize, currentPage))
+									.concat(namedSql.substring(embedEndIndex));
 						} else {
-							return sql.substring(0, embedStartIndex).concat(SUBQUERY_START)
-									.concat(sql.substring(embedStartIndex)).concat(SUBQUERY_END)
+							return namedSql.substring(0, embedStartIndex).concat(SUBQUERY_START)
+									.concat(namedSql.substring(embedStartIndex)).concat(SUBQUERY_END)
 									.concat(newPageEnd(pageSize, currentPage));
 						}
 					} else {
 						if (embedEndIndex < length) {
-							return SUBQUERY_START.concat(sql.substring(0, embedEndIndex)).concat(SUBQUERY_END)
-									.concat(newPageEnd(pageSize, currentPage)).concat(sql.substring(embedEndIndex));
+							return SUBQUERY_START.concat(namedSql.substring(0, embedEndIndex)).concat(SUBQUERY_END)
+									.concat(newPageEnd(pageSize, currentPage))
+									.concat(namedSql.substring(embedEndIndex));
 						} else {
-							return SUBQUERY_START.concat(sql).concat(SUBQUERY_END)
+							return SUBQUERY_START.concat(namedSql).concat(SUBQUERY_END)
 									.concat(newPageEnd(pageSize, currentPage));
 						}
 					}
 				} else {// 没有OFFSET或FETCH子句，直接在末尾追加行数限制条件
 					if (embedEndIndex < length) {
-						return sql.substring(0, embedEndIndex).concat(newPageEnd(pageSize, currentPage))
-								.concat(sql.substring(embedEndIndex));
+						return namedSql.substring(0, embedEndIndex).concat(newPageEnd(pageSize, currentPage))
+								.concat(namedSql.substring(embedEndIndex));
 					} else {
-						return sql.concat(newPageEnd(pageSize, currentPage));
+						return namedSql.concat(newPageEnd(pageSize, currentPage));
 					}
 				}
 			} else {
-				String pageStart = pageStart(SQLUtils.getColumnLabels(con, sql, params, sqlMetaData));
+				String pageStart = pageStart(SQLUtils.getColumnLabels(con, namedSql, params, sqlMetaData));
 				int length = sqlMetaData.getLength(), embedStartIndex = sqlMetaData.getEmbedStartIndex(),
 						embedEndIndex = sqlMetaData.getEmbedEndIndex();
 				if (embedStartIndex > 0) {
 					if (embedEndIndex < length) {
-						return sql.substring(0, embedStartIndex).concat(pageStart)
-								.concat(sql.substring(embedStartIndex, embedEndIndex))
-								.concat(pageEnd(pageSize, currentPage)).concat(sql.substring(embedEndIndex));
+						return namedSql.substring(0, embedStartIndex).concat(pageStart)
+								.concat(namedSql.substring(embedStartIndex, embedEndIndex))
+								.concat(pageEnd(pageSize, currentPage)).concat(namedSql.substring(embedEndIndex));
 					} else {
-						return sql.substring(0, embedStartIndex).concat(pageStart)
-								.concat(sql.substring(embedStartIndex)).concat(pageEnd(pageSize, currentPage));
+						return namedSql.substring(0, embedStartIndex).concat(pageStart)
+								.concat(namedSql.substring(embedStartIndex)).concat(pageEnd(pageSize, currentPage));
 					}
 				} else {
 					if (embedEndIndex < length) {
-						return pageStart.concat(sql.substring(0, embedEndIndex)).concat(pageEnd(pageSize, currentPage))
-								.concat(sql.substring(embedEndIndex));
+						return pageStart.concat(namedSql.substring(0, embedEndIndex))
+								.concat(pageEnd(pageSize, currentPage)).concat(namedSql.substring(embedEndIndex));
 					} else {
-						return pageStart.concat(sql).concat(pageEnd(pageSize, currentPage));
+						return pageStart.concat(namedSql).concat(pageEnd(pageSize, currentPage));
 					}
 				}
 			}

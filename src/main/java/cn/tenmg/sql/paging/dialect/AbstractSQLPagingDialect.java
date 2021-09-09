@@ -20,37 +20,39 @@ public abstract class AbstractSQLPagingDialect implements SQLPagingDialect {
 			COUNT_END = "\n) SQLTOOL";
 
 	@Override
-	public String countSql(String sql, SQLMetaData sqlMetaData) {
+	public String countSql(String namedSql, SQLMetaData sqlMetaData) {
 		int embedStartIndex = sqlMetaData.getEmbedStartIndex(), embedEndIndex = sqlMetaData.getEmbedEndIndex(),
 				length = sqlMetaData.getLength();
 		if (sqlMetaData.getLimitIndex() > 0 || sqlMetaData.getOffsetIndex() > 0 || sqlMetaData.getFetchIndex() > 0
 				|| sqlMetaData.getGroupByIndex() > 0) {// 含有LIMIT、OFFSET、FETCH或GROUP BY子句
-			return wrapCountSql(sql, embedStartIndex, embedEndIndex, length);
+			return wrapCountSql(namedSql, embedStartIndex, embedEndIndex, length);
 		}
 		int selectIndex = sqlMetaData.getSelectIndex(), fromIndex = sqlMetaData.getFromIndex(),
 				orderByIndex = sqlMetaData.getOrderByIndex();
 		if (selectIndex >= 0 && fromIndex > selectIndex) {// 正确拼写了SELECT、FROM子句、且不包含LIMIT、OFFSET、FETCH或GROUP BY子句
 			if (orderByIndex > 0) {// 含ORDER BY子句
 				if (selectIndex > 0) {
-					return sql.substring(0, selectIndex).concat(sql.substring(selectIndex, selectIndex + SELECT_LEN))
-							.concat(COUNT).concat(sql.substring(fromIndex, orderByIndex));
+					return namedSql.substring(0, selectIndex)
+							.concat(namedSql.substring(selectIndex, selectIndex + SELECT_LEN)).concat(COUNT)
+							.concat(namedSql.substring(fromIndex, orderByIndex));
 				} else {
-					return sql.substring(selectIndex, selectIndex + SELECT_LEN).concat(COUNT)
-							.concat(sql.substring(fromIndex, orderByIndex));
+					return namedSql.substring(selectIndex, selectIndex + SELECT_LEN).concat(COUNT)
+							.concat(namedSql.substring(fromIndex, orderByIndex));
 				}
 			} else {
-				return sql.substring(0, selectIndex).concat(sql.substring(selectIndex, selectIndex + SELECT_LEN))
-						.concat(COUNT).concat(sql.substring(fromIndex));
+				return namedSql.substring(0, selectIndex)
+						.concat(namedSql.substring(selectIndex, selectIndex + SELECT_LEN)).concat(COUNT)
+						.concat(namedSql.substring(fromIndex));
 			}
 		}
-		return wrapCountSql(sql, embedStartIndex, embedEndIndex, length);
+		return wrapCountSql(namedSql, embedStartIndex, embedEndIndex, length);
 	}
 
 	/**
 	 * 包装查询SQL为查询总记录数的SQL
 	 * 
-	 * @param sql
-	 *            查询SQL
+	 * @param namedSql
+	 *            可能含命名参数的查询SQL
 	 * @param embedStartIndex
 	 *            可嵌套查询的开始位置
 	 * @param embedEndIndex
@@ -59,25 +61,25 @@ public abstract class AbstractSQLPagingDialect implements SQLPagingDialect {
 	 *            SQL的长度
 	 * @return 返回查询总记录数的SQL
 	 */
-	private static String wrapCountSql(String sql, int embedStartIndex, int embedEndIndex, int length) {
+	private static String wrapCountSql(String namedSql, int embedStartIndex, int embedEndIndex, int length) {
 		if (embedStartIndex > 0) {
 			if (embedEndIndex < length) {
-				sql = sql.substring(0, embedStartIndex).concat(COUNT_START)
-						.concat(sql.substring(embedStartIndex, embedEndIndex)).concat(COUNT_END)
-						.concat(sql.substring(embedEndIndex));
+				namedSql = namedSql.substring(0, embedStartIndex).concat(COUNT_START)
+						.concat(namedSql.substring(embedStartIndex, embedEndIndex)).concat(COUNT_END)
+						.concat(namedSql.substring(embedEndIndex));
 			} else {
-				sql = sql.substring(0, embedStartIndex).concat(COUNT_START).concat(sql.substring(embedStartIndex))
-						.concat(COUNT_END);
+				namedSql = namedSql.substring(0, embedStartIndex).concat(COUNT_START)
+						.concat(namedSql.substring(embedStartIndex)).concat(COUNT_END);
 			}
 		} else {
 			if (embedEndIndex < length) {
-				sql = COUNT_START.concat(sql.substring(0, embedEndIndex)).concat(COUNT_END)
-						.concat(sql.substring(embedEndIndex));
+				namedSql = COUNT_START.concat(namedSql.substring(0, embedEndIndex)).concat(COUNT_END)
+						.concat(namedSql.substring(embedEndIndex));
 			} else {
-				sql = COUNT_START.concat(sql).concat(COUNT_END);
+				namedSql = COUNT_START.concat(namedSql).concat(COUNT_END);
 			}
 		}
-		return sql;
+		return namedSql;
 	}
 
 }

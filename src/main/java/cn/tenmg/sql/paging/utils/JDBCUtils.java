@@ -10,6 +10,13 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * JDBC工具类
+ * 
+ * @author 赵伟均 wjzhao@aliyun.com
+ * 
+ * @since 1.0.0
+ */
 public abstract class JDBCUtils {
 
 	private static final Logger log = LogManager.getLogger(JDBCUtils.class);

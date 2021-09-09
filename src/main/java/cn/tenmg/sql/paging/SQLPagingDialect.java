@@ -16,21 +16,21 @@ public interface SQLPagingDialect {
 	/**
 	 * 根据SQL生成特定数据库统计总记录数SQL
 	 * 
-	 * @param sql
-	 *            查询SQL
+	 * @param namedSql
+	 *            可能含命名参数的查询SQL
 	 * @param sqlMetaData
 	 *            SQL相关数据
 	 * @return 返回查询总记录数的SQL
 	 */
-	String countSql(String sql, SQLMetaData sqlMetaData);
+	String countSql(String namedSql, SQLMetaData sqlMetaData);
 
 	/**
 	 * 根据SQL、页容量pageSize和当前页码currentPage生成特定数据库的分页查询SQL
 	 * 
 	 * @param con
 	 *            已开启的数据库连接
-	 * @param sql
-	 *            SQL
+	 * @param namedSql
+	 *            可能含命名参数的查询SQL
 	 * @param params
 	 *            查询参数集
 	 * @param sqlMetaData
@@ -43,7 +43,7 @@ public interface SQLPagingDialect {
 	 * @throws SQLException
 	 *             SQL异常
 	 */
-	String pageSql(Connection con, String sql, Map<String, ?> params, SQLMetaData sqlMetaData, int pageSize,
+	String pageSql(Connection con, String namedSql, Map<String, ?> params, SQLMetaData sqlMetaData, int pageSize,
 			long currentPage) throws SQLException;
 
 }

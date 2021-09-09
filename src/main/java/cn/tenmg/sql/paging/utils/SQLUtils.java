@@ -5,21 +5,27 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import cn.tenmg.dsl.utils.NamedScriptUtils;
-import cn.tenmg.sql.paging.SQL;
+import cn.tenmg.dsl.Script;
+import cn.tenmg.dsl.parser.JDBCParamsParser;
+import cn.tenmg.dsl.utils.DSLUtils;
 import cn.tenmg.sql.paging.SQLMetaData;
 
+/**
+ * SQL工具类
+ * 
+ * @author 赵伟均 wjzhao@aliyun.com
+ * 
+ * @since 1.0.0
+ *
+ */
 public abstract class SQLUtils {
 
 	public static final char BACKSLASH = '\\', BLANK_SPACE = '\u0020', LEFT_BRACKET = '\u0028',
-			RIGHT_BRACKET = '\u0029', COMMA = ',', SINGLE_QUOTATION_MARK = '\'', PARAM_MARK = '?', LINE_SEPARATOR[] = { '\r', '\n' };
+			RIGHT_BRACKET = '\u0029', COMMA = ',', SINGLE_QUOTATION_MARK = '\'', PARAM_MARK = '?',
+			LINE_SEPARATOR[] = { '\r', '\n' };
 
 	private static final String WITH = "WITH", SELECT = "SELECT", FROM = "FROM", FROM_REVERSE = "MORF",
 			ON_REVERSE = "NO", WHERE_REVERSE = "EREHW", GROUP_REVERSE = "PUORG", ORDER_REVERSE = "REDRO",
@@ -27,73 +33,6 @@ public abstract class SQLUtils {
 			SELECT_ALL = SELECT + " * FROM (\n", ALIAS = "\n) SQLTOOL", WHERE_IMPOSSIBLE = "\nWHERE 1=0";
 
 	private static final int WITH_LEN = WITH.length(), SELECT_LEN = SELECT.length(), FROM_LEN = FROM.length();
-
-	/**
-	 * 将指定的含有命名参数的源SQL及查询参数转换为JDBC可执行的SQL对象，该对象内含SQL脚本及对应的参数列表
-	 * 
-	 * @param source
-	 *            源SQL脚本
-	 * @param params
-	 *            查询参数列表
-	 * @return 返回JDBC可执行的SQL对象，含SQL脚本及对应的参数列表
-	 */
-	public static SQL toSQL(String source, Map<String, ?> params) {
-		if (params == null) {
-			params = new HashMap<String, Object>();
-		}
-		List<Object> paramList = new ArrayList<Object>();
-		if (isBlank(source)) {
-			return new SQL(source, paramList);
-		}
-		int len = source.length(), i = 0, backslashes = 0;
-		char a = BLANK_SPACE, b = BLANK_SPACE;
-		boolean isString = false;// 是否在字符串区域
-		boolean isParam = false;// 是否在参数区域
-		StringBuilder sql = new StringBuilder(), paramName = new StringBuilder();
-		while (i < len) {
-			char c = source.charAt(i);
-			if (isString) {
-				if (c == BACKSLASH) {
-					backslashes++;
-				} else {
-					if (NamedScriptUtils.isStringEnd(a, b, c, backslashes)) {// 字符串区域结束
-						isString = false;
-					}
-					backslashes = 0;
-				}
-				sql.append(c);
-			} else {
-				if (c == SINGLE_QUOTATION_MARK) {// 字符串区域开始
-					isString = true;
-					sql.append(c);
-				} else if (isParam) {// 处于参数区域
-					if (NamedScriptUtils.isParamChar(c)) {
-						paramName.append(c);
-					} else {
-						isParam = false;// 参数区域结束
-						paramEnd(params, sql, paramName, paramList);
-						sql.append(c);
-					}
-				} else {
-					if (NamedScriptUtils.isParamBegin(a, b, c)) {
-						isParam = true;// 参数区域开始
-						paramName.setLength(0);
-						paramName.append(c);
-						sql.setCharAt(sql.length() - 1, '?');// “:”替换为“?”
-					} else {
-						sql.append(c);
-					}
-				}
-			}
-			a = b;
-			b = c;
-			i++;
-		}
-		if (isParam) {
-			paramEnd(params, sql, paramName, paramList);
-		}
-		return new SQL(sql.toString(), paramList);
-	}
 
 	/**
 	 * 获取SQL相关数据（不对SQL做null校验）
@@ -150,8 +89,8 @@ public abstract class SQLUtils {
 					script = SELECT_ALL.concat(namedSQL).concat(ALIAS).concat(WHERE_IMPOSSIBLE);
 				}
 			}
-			SQL SQL = toSQL(script, params);
-			ps = con.prepareStatement(SQL.getScript());
+			Script<List<Object>> SQL = DSLUtils.toScript(script, params, JDBCParamsParser.getInstance());
+			ps = con.prepareStatement(SQL.getValue());
 			JDBCUtils.setParams(ps, SQL.getParams());
 			rs = ps.executeQuery();
 			ResultSetMetaData rsmd = rs.getMetaData();
@@ -167,46 +106,6 @@ public abstract class SQLUtils {
 			JDBCUtils.close(ps);
 		}
 		return columnLabels;
-	}
-
-	private static void paramEnd(Map<String, ?> params, StringBuilder sqlBuilder, StringBuilder paramName,
-			List<Object> paramList) {
-		String name = paramName.toString();
-		Object value = params.get(name);
-		if (value != null) {
-			if (value instanceof Collection<?>) {
-				Collection<?> collection = (Collection<?>) value;
-				if (collection == null || collection.isEmpty()) {
-					paramList.add(null);
-				} else {
-					boolean flag = false;
-					for (Iterator<?> it = collection.iterator(); it.hasNext();) {
-						if (flag) {
-							sqlBuilder.append(", ?");
-						} else {
-							flag = true;
-						}
-						paramList.add(it.next());
-					}
-				}
-			} else if (value instanceof Object[]) {
-				Object[] objects = (Object[]) value;
-				if (objects.length == 0) {
-					paramList.add(null);
-				} else {
-					for (int j = 0; j < objects.length; j++) {
-						if (j > 0) {
-							sqlBuilder.append(", ?");
-						}
-						paramList.add(objects[j]);
-					}
-				}
-			} else {
-				paramList.add(value);
-			}
-		} else {
-			paramList.add(value);
-		}
 	}
 
 	/**
@@ -319,7 +218,7 @@ public abstract class SQLUtils {
 					if (c == BACKSLASH) {
 						backslashes++;
 					} else {
-						if (NamedScriptUtils.isStringEnd(charsBefore[0], charsBefore[1], c, backslashes)) {// 字符串区域结束
+						if (DSLUtils.isStringEnd(charsBefore[0], charsBefore[1], c, backslashes)) {// 字符串区域结束
 							isString = false;
 						}
 					}
@@ -355,7 +254,7 @@ public abstract class SQLUtils {
 				if (c == BACKSLASH) {
 					backslashes++;
 				} else {
-					if (NamedScriptUtils.isStringEnd(charsBefore[0], charsBefore[1], c, backslashes)) {// 字符串区域结束
+					if (DSLUtils.isStringEnd(charsBefore[0], charsBefore[1], c, backslashes)) {// 字符串区域结束
 						isString = false;
 					}
 					backslashes = 0;
@@ -396,19 +295,6 @@ public abstract class SQLUtils {
 			}
 		}
 		setEmbedStartIndex(sqlMetaData, lineSplitorIndexs[0], lineSplitorIndexs[1]);
-	}
-
-	private static boolean isBlank(String string) {
-		int len;
-		if (string == null || (len = string.length()) == 0) {
-			return true;
-		}
-		for (int i = 0; i < len; i++) {
-			if ((Character.isWhitespace(string.charAt(i)) == false)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	/**
