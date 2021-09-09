@@ -7,7 +7,7 @@
 
 数据库     | 支持版本 |     方言实现类
 -----------|---------|-------------------------
-Mysql      | 1.0+    | MySQLPagingDialect
+MySQL      | 1.0+    | MySQLPagingDialect
 Oracle     | 1.0+    | OraclePagingDialect
 PostgreSQL | 1.0+    | PostgreSQLPagingDialect
 SQLServer  | 1.0+    | SQLServerPagingDialect
