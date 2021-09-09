@@ -43,6 +43,7 @@ String countSql = dialect.countSql(namedSql, sqlMetaData);
 ……
 try {
     String pageSql = dialect.pageSql(con, namedSql, params, sqlMetaData, 20, 2);
+    ……
 } catch (SQLException e) {
     // TODO Auto-generated catch block
     e.printStackTrace();
