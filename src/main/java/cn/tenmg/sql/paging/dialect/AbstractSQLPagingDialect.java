@@ -6,7 +6,7 @@ import cn.tenmg.sql.paging.SQLPagingDialect;
 /**
  * 抽象SQL分页查询方言。封装方言基本方法
  * 
- * @author 赵伟均 wjzhao@aliyun.com
+ * @author June wjzhao@aliyun.com
  * 
  * @since 1.0.0
  */

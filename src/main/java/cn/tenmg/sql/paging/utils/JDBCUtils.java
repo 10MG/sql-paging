@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 /**
  * JDBC工具类
  * 
- * @author 赵伟均 wjzhao@aliyun.com
+ * @author June wjzhao@aliyun.com
  * 
  * @since 1.0.0
  */
