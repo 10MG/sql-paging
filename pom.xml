@@ -6,41 +6,11 @@
 	<description>SQL分页查询解析框架</description>
 	<groupId>cn.tenmg</groupId>
 	<artifactId>sql-paging</artifactId>
-	<version>1.2.2</version>
+	<version>1.2.3</version>
 	<packaging>jar</packaging>
 
 	<name>sql-paging</name>
-	<url>http://www.10mg.cn</url>
-
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
-	</properties>
-
-	<dependencies>
-		<!-- https://mvnrepository.com/artifact/cn.tenmg/dsl -->
-		<dependency>
-			<groupId>cn.tenmg</groupId>
-			<artifactId>dsl</artifactId>
-			<version>1.2.2</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>
-			<version>2.14.1</version>
-		</dependency>
-	</dependencies>
-
-	<licenses>
-		<license>
-			<name>Apache License, Version 2.0</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-			<distribution>repo</distribution>
-			<comments>A business-friendly OSS license</comments>
-		</license>
-	</licenses>
+	<url>https://gitee.com/tenmg/sql-paging</url>
 
 	<organization>
 		<name>10MG</name>
@@ -56,10 +26,19 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:https://gitee.com/tenmg/dsql.git</connection>
-		<url>https://gitee.com/tenmg/dsql.git</url>
+		<connection>scm:git:https://gitee.com/tenmg/sql-paging.git</connection>
+		<url>https://gitee.com/tenmg/sql-paging.git</url>
 		<developerConnection>scm:git:https://gitee.com/tenmg</developerConnection>
 	</scm>
+
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+			<comments>A business-friendly OSS license</comments>
+		</license>
+	</licenses>
 
 	<distributionManagement>
 		<repository>
@@ -71,6 +50,27 @@
 			<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
 		</snapshotRepository>
 	</distributionManagement>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+	</properties>
+
+	<dependencies>
+		<!-- https://mvnrepository.com/artifact/cn.tenmg/dsl -->
+		<dependency>
+			<groupId>cn.tenmg</groupId>
+			<artifactId>dsl</artifactId>
+			<version>1.2.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>2.14.1</version>
+		</dependency>
+	</dependencies>
 
 	<build>
 		<plugins>
