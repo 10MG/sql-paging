@@ -7,10 +7,13 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+//import java.util.Set;
 
 import cn.tenmg.dsl.Script;
 import cn.tenmg.dsl.parser.JDBCParamsParser;
 import cn.tenmg.dsl.utils.DSLUtils;
+//import cn.tenmg.dsl.utils.SetUtils;
+import cn.tenmg.dsl.utils.StringUtils;
 import cn.tenmg.sql.paging.SQLMetaData;
 
 /**
@@ -29,10 +32,13 @@ public abstract class SQLUtils {
 
 	private static final String WITH = "WITH", SELECT = "SELECT", FROM = "FROM", FROM_REVERSE = "MORF",
 			ON_REVERSE = "NO", WHERE_REVERSE = "EREHW", GROUP_REVERSE = "PUORG", ORDER_REVERSE = "REDRO",
-			BY_REVERSE = "YB", LIMIT_REVERSE = "TIMIL", OFFSET_REVERSE = "TESFFO", FETCH_REVERSE = "HCTEF",
-			SELECT_ALL = SELECT + " * FROM (\n", ALIAS = "\n) SQLTOOL", WHERE_IMPOSSIBLE = "\nWHERE 1=0";
+			BY_REVERSE = "YB", LIMIT_REVERSE = "TIMIL", OFFSET_REVERSE = "TESFFO", FETCH_REVERSE = "HCTEF", AND = "AND",
+			BLANK_SPACE_AND = " " + AND, IMPOSSIBLE = " 1=0", WHERE_IMPOSSIBLE = "WHERE" + IMPOSSIBLE,
+			BLANK_SPACE_WHERE_IMPOSSIBLE = BLANK_SPACE + WHERE_IMPOSSIBLE;
 
 	private static final int WITH_LEN = WITH.length(), SELECT_LEN = SELECT.length(), FROM_LEN = FROM.length();
+
+	//private static final Set<Character> LINE_TAIL = SetUtils.newHashSet('\r', '\n');
 
 	/**
 	 * 获取SQL相关数据（不对SQL做null校验）
@@ -68,30 +74,28 @@ public abstract class SQLUtils {
 			SQLMetaData sqlMetaData) throws SQLException {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
-		String script, columnLabels[] = null;
+		String columnLabels[] = null;
 		try {
-			int length = sqlMetaData.getLength(), embedStartIndex = sqlMetaData.getEmbedStartIndex(),
-					embedEndIndex = sqlMetaData.getEmbedEndIndex();
-			if (embedStartIndex > 0) {
-				if (embedEndIndex < length) {
-					script = namedSQL.substring(0, embedStartIndex).concat(SELECT_ALL)
-							.concat(namedSQL.substring(embedStartIndex, embedEndIndex)).concat(ALIAS)
-							.concat(WHERE_IMPOSSIBLE).concat(namedSQL.substring(embedEndIndex));
+			int whereIndex = sqlMetaData.getWhereIndex(),
+					firstStatmentIndexAfterWhere = firstStatmentIndexAfterWhere(sqlMetaData);
+			if (whereIndex > 0) {
+				if (firstStatmentIndexAfterWhere > 0) {
+					namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), AND,
+								IMPOSSIBLE);
 				} else {
-					script = namedSQL.substring(0, embedStartIndex).concat(SELECT_ALL)
-							.concat(namedSQL.substring(embedStartIndex)).concat(ALIAS).concat(WHERE_IMPOSSIBLE);
+					namedSQL = StringUtils.concat(namedSQL, BLANK_SPACE_AND, IMPOSSIBLE);
 				}
 			} else {
-				if (embedEndIndex < length) {
-					script = SELECT_ALL.concat(namedSQL.substring(0, embedEndIndex)).concat(ALIAS)
-							.concat(WHERE_IMPOSSIBLE).concat(namedSQL.substring(embedEndIndex));
+				if (firstStatmentIndexAfterWhere > 0) {
+					namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere),
+								WHERE_IMPOSSIBLE);
 				} else {
-					script = SELECT_ALL.concat(namedSQL).concat(ALIAS).concat(WHERE_IMPOSSIBLE);
+					namedSQL = StringUtils.concat(namedSQL, BLANK_SPACE_WHERE_IMPOSSIBLE);
 				}
 			}
-			Script<List<Object>> SQL = DSLUtils.toScript(script, params, JDBCParamsParser.getInstance());
-			ps = con.prepareStatement(SQL.getValue());
-			JDBCUtils.setParams(ps, SQL.getParams());
+			Script<List<Object>> sql = DSLUtils.toScript(namedSQL, params, JDBCParamsParser.getInstance());
+			ps = con.prepareStatement(sql.getValue());
+			JDBCUtils.setParams(ps, sql.getParams());
 			rs = ps.executeQuery();
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int columnCount = rsmd.getColumnCount();
@@ -99,8 +103,6 @@ public abstract class SQLUtils {
 			for (int i = 1; i <= columnCount; i++) {
 				columnLabels[i - 1] = rsmd.getColumnLabel(i);
 			}
-		} catch (SQLException e) {
-			throw e;
 		} finally {
 			JDBCUtils.close(rs);
 			JDBCUtils.close(ps);
@@ -120,13 +122,13 @@ public abstract class SQLUtils {
 		int length = sqlMetaData.getLength(), i = length - 1;
 		char c = sql.charAt(i);
 		boolean isString = false;
-		int deep = 0, lineSplitorIndexs[] = { length, length };
+		int deep = 0/*, lineSplitorIndexs[] = { length, length }*/;
 		StringBuilder sba = new StringBuilder(), sbb = new StringBuilder();
-		while (i > 0 && c <= BLANK_SPACE) {// 跳过空白字符
-			decideLineSplitorIndex(lineSplitorIndexs, c, i);
+		/*while (i > 0 && c <= BLANK_SPACE) {// 跳过空白字符
+			decideLineSplitorIndex(lineSplitorIndexs, c, i);// 找到末尾的首个换行符
 			c = sql.charAt(--i);
-		}
-		setEmbedEndIndex(sqlMetaData, lineSplitorIndexs[0], lineSplitorIndexs[1]);
+		}*/
+		//setEmbedEndIndex(sqlMetaData, lineSplitorIndexs[0], lineSplitorIndexs[1]);
 		while (i > 0) {
 			if (isString) {
 				if (i > 2) {
@@ -294,7 +296,7 @@ public abstract class SQLUtils {
 				}
 			}
 		}
-		setEmbedStartIndex(sqlMetaData, lineSplitorIndexs[0], lineSplitorIndexs[1]);
+		//setEmbedStartIndex(sqlMetaData);
 	}
 
 	/**
@@ -315,10 +317,10 @@ public abstract class SQLUtils {
 	}
 
 	/**
-	 * 确定SELECT子句之前最后一个换行符的位置
+	 * 确定换行符的位置
 	 * 
 	 * @param lineSplitorIndexs
-	 *            SELECT子句之前最后一个换行符的位置
+	 *            换行符的位置
 	 * @param c
 	 *            当前字符
 	 * @param i
@@ -337,29 +339,21 @@ public abstract class SQLUtils {
 	 * 
 	 * @param sqlMetaData
 	 *            SQL相关数据对象
+	 * @param sql
+	 *            SQL
 	 * @param r
 	 *            /r的索引
 	 * @param n
 	 *            /n的索引
 	 */
-	private static void setEmbedStartIndex(SQLMetaData sqlMetaData, int r, int n) {
-		int withIndex = sqlMetaData.getWithIndex(), selectIndex = sqlMetaData.getSelectIndex();
+	/*private static void setEmbedStartIndex(SQLMetaData sqlMetaData) {
+		int selectIndex = sqlMetaData.getSelectIndex();
 		if (selectIndex > 0) {
-			if (withIndex >= 0 && selectIndex > withIndex) {
-				sqlMetaData.setEmbedStartIndex(selectIndex);
-			} else {
-				if (r < n && n < selectIndex) {
-					sqlMetaData.setEmbedStartIndex(n + 1);
-				} else if (r > n && r < selectIndex) {
-					sqlMetaData.setEmbedStartIndex(r + 1);
-				} else {
-					sqlMetaData.setEmbedStartIndex(selectIndex);
-				}
-			}
+			sqlMetaData.setEmbedStartIndex(selectIndex);
 		} else {
 			sqlMetaData.setEmbedStartIndex(0);
 		}
-	}
+	}*/
 
 	/**
 	 * 设置查询嵌入的结束位置
@@ -371,7 +365,7 @@ public abstract class SQLUtils {
 	 * @param n
 	 *            /n的索引
 	 */
-	private static void setEmbedEndIndex(SQLMetaData sqlMetaData, int r, int n) {
+	/*private static void setEmbedEndIndex(SQLMetaData sqlMetaData, int r, int n) {
 		if (r < n) {
 			sqlMetaData.setEmbedEndIndex(r);
 		} else if (r > n) {
@@ -379,6 +373,41 @@ public abstract class SQLUtils {
 		} else {
 			sqlMetaData.setEmbedEndIndex(sqlMetaData.getLength());
 		}
+	}*/
+
+	private static int firstStatmentIndexAfterWhere(SQLMetaData sqlMetaData) {
+		int index = sqlMetaData.getOrderByIndex();
+		if (index < 0) {
+			index = sqlMetaData.getLimitIndex();
+		}
+		if (index < 0) {
+			index = sqlMetaData.getOffsetIndex();
+		}
+		return index;
+	}
+
+	/**
+	 * 获取查询SQL指定索引（index）左边最远的不可见字符索引
+	 * 
+	 * @param namedSql
+	 *            查询SQL
+	 * @param index
+	 *            指定索引
+	 * @return 查询SQL指定索引（index）左边最远的不可见字符索引
+	 */
+	protected static int leftFarthestBlank(String sql, int index) {
+		char c;
+		int leftFarthestNotNewline = index, i = index;
+		while (i > 0) {
+			c = sql.charAt(--i);
+			if (c > DSLUtils.BLANK_SPACE) {
+				break;
+			} else if (c == '\n') {
+				leftFarthestNotNewline = i + 1;
+				break;
+			}
+		}
+		return leftFarthestNotNewline;
 	}
 
 }

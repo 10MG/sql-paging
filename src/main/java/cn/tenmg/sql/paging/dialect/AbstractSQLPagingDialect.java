@@ -1,5 +1,9 @@
 package cn.tenmg.sql.paging.dialect;
 
+import java.util.Properties;
+
+import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
+import cn.tenmg.dsl.utils.StringUtils;
 import cn.tenmg.sql.paging.SQLMetaData;
 import cn.tenmg.sql.paging.SQLPagingDialect;
 
@@ -12,40 +16,69 @@ import cn.tenmg.sql.paging.SQLPagingDialect;
  */
 public abstract class AbstractSQLPagingDialect implements SQLPagingDialect {
 
-	protected static final String SELECT = "SELECT";
+	protected static final String SELECT = "SELECT", COUNT,
+			COUNT_REGEX = "[\\s]*[C|c][O|o][U|u][N|n][T|t]\\([\\S]+\\)[\\s]*", COUNT_START, COUNT_END = ") SQL_PAGING";
 
 	protected static final int SELECT_LEN = SELECT.length();
 
-	private static final String COUNT = " COUNT(*) ", COUNT_START = SELECT + " COUNT(*) FROM (\n",
-			COUNT_END = "\n) SQLTOOL";
+	protected static final Properties config = new Properties();
+
+	static {
+		PropertiesLoaderUtils.loadIgnoreException(config, "sql-paging.properties");
+		COUNT = StringUtils.concat(" COUNT(", config.getProperty("count.expression", "*"), ") ");
+		COUNT_START = StringUtils.concat(SELECT, COUNT, "FROM (");
+	}
 
 	@Override
 	public String countSql(String namedSql, SQLMetaData sqlMetaData) {
-		int embedStartIndex = sqlMetaData.getEmbedStartIndex(), embedEndIndex = sqlMetaData.getEmbedEndIndex(),
-				length = sqlMetaData.getLength();
-		if (sqlMetaData.getLimitIndex() > 0 || sqlMetaData.getOffsetIndex() > 0 || sqlMetaData.getFetchIndex() > 0
-				|| sqlMetaData.getGroupByIndex() > 0) {// 含有LIMIT、OFFSET、FETCH或GROUP BY子句
-			return wrapCountSql(namedSql, embedStartIndex, embedEndIndex, length);
-		}
-		int selectIndex = sqlMetaData.getSelectIndex(), fromIndex = sqlMetaData.getFromIndex(),
-				orderByIndex = sqlMetaData.getOrderByIndex();
-		if (selectIndex >= 0 && fromIndex > selectIndex) {// 正确拼写了SELECT、FROM子句、且不包含LIMIT、OFFSET、FETCH或GROUP BY子句
-			if (orderByIndex > 0) {// 含ORDER BY子句
-				if (selectIndex > 0) {
-					return namedSql.substring(0, selectIndex)
-							.concat(namedSql.substring(selectIndex, selectIndex + SELECT_LEN)).concat(COUNT)
-							.concat(namedSql.substring(fromIndex, orderByIndex));
-				} else {
-					return namedSql.substring(selectIndex, selectIndex + SELECT_LEN).concat(COUNT)
-							.concat(namedSql.substring(fromIndex, orderByIndex));
-				}
+		int selectIndex = sqlMetaData.getSelectIndex(), orderByIndex = sqlMetaData.getOrderByIndex(),
+				limitIndex = sqlMetaData.getLimitIndex();
+		if (limitIndex > 0) {
+			return wrapCountSql(namedSql, selectIndex, orderByIndex, limitIndex);
+		} else {
+			int offsetIndex = sqlMetaData.getOffsetIndex();
+			if (offsetIndex > 0) {
+				return wrapCountSql(namedSql, selectIndex, orderByIndex, offsetIndex);
 			} else {
-				return namedSql.substring(0, selectIndex)
-						.concat(namedSql.substring(selectIndex, selectIndex + SELECT_LEN)).concat(COUNT)
-						.concat(namedSql.substring(fromIndex));
+				int fetchIndex = sqlMetaData.getFetchIndex();
+				if (fetchIndex > 0) {
+					return wrapCountSql(namedSql, selectIndex, orderByIndex, fetchIndex);
+				} else {
+					if (selectIndex > 0) {
+						int fromIndex = sqlMetaData.getFromIndex();
+						if (fromIndex > selectIndex) {
+							int columnsBegin = selectIndex + SELECT_LEN;
+							String columns = namedSql.substring(columnsBegin, fromIndex),
+									select = namedSql.substring(0, columnsBegin);
+							if (columns.matches(COUNT_REGEX)) {
+								return namedSql;
+							} else {
+								int groupByIndex = sqlMetaData.getGroupByIndex();
+								if (groupByIndex > fromIndex) {
+									if (orderByIndex > fromIndex) {
+										return StringUtils.concat(select, COUNT,
+												namedSql.substring(fromIndex, orderByIndex));
+									} else {
+										return StringUtils.concat(select, COUNT, namedSql.substring(fromIndex));
+									}
+								}
+								columns = COUNT;
+							}
+							if (orderByIndex > 0) {// 含ORDER BY子句
+								return StringUtils.concat(select, columns, namedSql.substring(fromIndex, orderByIndex));
+							} else {
+								return StringUtils.concat(select, columns, namedSql.substring(fromIndex));
+							}
+						} else {
+							return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
+									namedSql.substring(selectIndex), COUNT_END);
+						}
+					} else {
+						return StringUtils.concat(COUNT_START, namedSql, COUNT_END);
+					}
+				}
 			}
 		}
-		return wrapCountSql(namedSql, embedStartIndex, embedEndIndex, length);
 	}
 
 	/**
@@ -53,31 +86,32 @@ public abstract class AbstractSQLPagingDialect implements SQLPagingDialect {
 	 * 
 	 * @param namedSql
 	 *            可能含命名参数的查询SQL
-	 * @param embedStartIndex
-	 *            可嵌套查询的开始位置
-	 * @param embedEndIndex
-	 *            可嵌套查询的结束位置
-	 * @param length
-	 *            SQL的长度
+	 * @param selectIndex
+	 *            SELECT子句的开始位置
+	 * @param orderByIndex
+	 *            ORDER BY子句的开始位置
+	 * @param firstStatementIndexAfterOrderby
+	 *            ORDER BY下一子句的开始位置
 	 * @return 返回查询总记录数的SQL
 	 */
-	private static String wrapCountSql(String namedSql, int embedStartIndex, int embedEndIndex, int length) {
-		if (embedStartIndex > 0) {
-			if (embedEndIndex < length) {
-				namedSql = namedSql.substring(0, embedStartIndex).concat(COUNT_START)
-						.concat(namedSql.substring(embedStartIndex, embedEndIndex)).concat(COUNT_END)
-						.concat(namedSql.substring(embedEndIndex));
+	private static String wrapCountSql(String namedSql, int selectIndex, int orderByIndex,
+			int firstStatementIndexAfterOrderby) {
+		if (selectIndex > 0) {
+			if (orderByIndex > selectIndex) {
+				if (firstStatementIndexAfterOrderby > orderByIndex) {
+					namedSql = StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
+							namedSql.substring(selectIndex, orderByIndex),
+							namedSql.substring(firstStatementIndexAfterOrderby), COUNT_END);
+				} else {
+					namedSql = StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
+							namedSql.substring(selectIndex), COUNT_END);
+				}
 			} else {
-				namedSql = namedSql.substring(0, embedStartIndex).concat(COUNT_START)
-						.concat(namedSql.substring(embedStartIndex)).concat(COUNT_END);
+				namedSql = StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
+						namedSql.substring(selectIndex), COUNT_END);
 			}
 		} else {
-			if (embedEndIndex < length) {
-				namedSql = COUNT_START.concat(namedSql.substring(0, embedEndIndex)).concat(COUNT_END)
-						.concat(namedSql.substring(embedEndIndex));
-			} else {
-				namedSql = COUNT_START.concat(namedSql).concat(COUNT_END);
-			}
+			namedSql = StringUtils.concat(COUNT_START, namedSql, COUNT_END);
 		}
 		return namedSql;
 	}

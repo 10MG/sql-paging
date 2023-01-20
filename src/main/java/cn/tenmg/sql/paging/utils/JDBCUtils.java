@@ -39,6 +39,7 @@ public abstract class JDBCUtils {
 				}
 				ex.printStackTrace();
 			}
+			connection = null;
 		}
 	}
 
@@ -57,6 +58,7 @@ public abstract class JDBCUtils {
 				}
 				ex.printStackTrace();
 			}
+			statement = null;
 		}
 	}
 
@@ -73,6 +75,33 @@ public abstract class JDBCUtils {
 					log.error("Unexpected exception on closing JDBC ResultSet", ex);
 				}
 			}
+			resultSet = null;
+		}
+	}
+
+	public static void clear(Statement statement) {
+		if (statement != null) {
+			try {
+				statement.clearBatch();
+			} catch (SQLException ex) {
+				if (log.isErrorEnabled()) {
+					log.error("Could not clear batch of JDBC Statement", ex);
+				}
+			}
+			try {
+				statement.close();
+			} catch (SQLException ex) {
+				if (log.isErrorEnabled()) {
+					log.error("Could not close JDBC Statement", ex);
+				}
+				ex.printStackTrace();
+			} catch (Throwable ex) {
+				if (log.isErrorEnabled()) {
+					log.error("Unexpected exception on closing JDBC Statement", ex);
+				}
+				ex.printStackTrace();
+			}
+			statement = null;
 		}
 	}
 

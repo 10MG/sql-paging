@@ -16,11 +16,6 @@ public class SQLMetaData {
 	private int withIndex = -1;
 
 	/**
-	 * 可嵌套查询的开始位置
-	 */
-	private int embedStartIndex = -1;
-
-	/**
 	 * SELECT子句的位置
 	 */
 	private int selectIndex = -1;
@@ -63,7 +58,7 @@ public class SQLMetaData {
 	/**
 	 * 可嵌套查询的结束位置
 	 */
-	private int embedEndIndex = -1;
+	/* private int embedEndIndex = -1; */
 
 	/**
 	 * SQL的长度
@@ -76,14 +71,6 @@ public class SQLMetaData {
 
 	public void setWithIndex(int withIndex) {
 		this.withIndex = withIndex;
-	}
-
-	public int getEmbedEndIndex() {
-		return embedEndIndex;
-	}
-
-	public void setEmbedEndIndex(int embedEndIndex) {
-		this.embedEndIndex = embedEndIndex;
 	}
 
 	public int getSelectIndex() {
@@ -148,14 +135,6 @@ public class SQLMetaData {
 
 	public void setFetchIndex(int fetchIndex) {
 		this.fetchIndex = fetchIndex;
-	}
-
-	public int getEmbedStartIndex() {
-		return embedStartIndex;
-	}
-
-	public void setEmbedStartIndex(int embedStartIndex) {
-		this.embedStartIndex = embedStartIndex;
 	}
 
 	public int getLength() {

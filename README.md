@@ -116,7 +116,7 @@ FROM (
   FROM ORDER_INFO O
   WHERE O.CREATE_TIME >= :begin AND O.CREATE_TIME < :end
   GROUP BY USER_ID
-) SQLTOOL
+) SQL_PAGING
 ```
 
 干得漂亮！这完全是我们所期待的。但如果情况再复杂一点呢？比如这样，我们需要查询某段时间内订单金额前一百名的用户：
@@ -155,7 +155,7 @@ FROM (
   ) T
   ORDER BY AMT DESC
   LIMIT 100
-) SQLTOOL
+) SQL_PAGING
 ```
 
 sql-paging没有误杀无辜者，不该去掉的当然要保留原样，这时候仅仅做了必要的包装。
@@ -204,7 +204,7 @@ SELECT
 FROM (
   SELECT
     ROWNUM RN__,
-    SQLTOOL.*
+    SQL_PAGING.*
   FROM (
     SELECT
       S.STAFF_ID,
@@ -214,7 +214,7 @@ FROM (
       S.STATUS
     FROM STAFF_INFO S
     ORDER BY S.STAFF_ID
-  ) SQLTOOL
+  ) SQL_PAGING
   WHERE RN__ <= 20
 )
 WHERE RN__ > 10
@@ -269,7 +269,7 @@ SELECT
 FROM (
   SELECT
     ROWNUM RN__,
-    SQLTOOL.*
+    SQL_PAGING.*
   FROM (
     SELECT
       USER_ID,
@@ -278,7 +278,7 @@ FROM (
     WHERE O.CREATE_TIME >= :begin AND O.CREATE_TIME < :end
     GROUP BY USER_ID
     ORDER BY SUM(AMT) DESC
-  ) SQLTOOL
+  ) SQL_PAGING
   WHERE RN__ <= 20
 )
 WHERE RN__ > 10
