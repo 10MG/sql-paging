@@ -389,7 +389,7 @@ public abstract class SQLUtils {
 	/**
 	 * 获取查询SQL指定索引（index）左边最远的不可见字符索引
 	 * 
-	 * @param namedSql
+	 * @param sql
 	 *            查询SQL
 	 * @param index
 	 *            指定索引
