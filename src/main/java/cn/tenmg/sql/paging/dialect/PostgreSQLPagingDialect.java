@@ -32,7 +32,7 @@ public class PostgreSQLPagingDialect extends AbstractSQLPagingDialect {
 	public String pageSql(Connection con, String namedSql, Map<String, ?> params, SQLMetaData sqlMetaData, int pageSize,
 			long currentPage) {
 		int selectIndex = sqlMetaData.getSelectIndex();
-		if (selectIndex > 0) {
+		if (selectIndex >= 0) {
 			if (sqlMetaData.getLimitIndex() >= 0) {
 				return StringUtils.concat(namedSql.substring(0, selectIndex), PAGE_WRAP_START,
 						namedSql.substring(selectIndex), PAGE_WRAP_END, generateLimit(pageSize, currentPage));

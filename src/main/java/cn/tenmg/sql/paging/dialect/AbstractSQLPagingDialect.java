@@ -44,7 +44,7 @@ public abstract class AbstractSQLPagingDialect implements SQLPagingDialect {
 				if (fetchIndex > 0) {
 					return wrapCountSql(namedSql, selectIndex, orderByIndex, fetchIndex);
 				} else {
-					if (selectIndex > 0) {
+					if (selectIndex >= 0) {
 						int fromIndex = sqlMetaData.getFromIndex();
 						if (fromIndex > selectIndex) {
 							int columnsBegin = selectIndex + SELECT_LEN;

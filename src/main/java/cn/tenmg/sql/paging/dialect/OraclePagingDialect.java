@@ -38,7 +38,7 @@ public class OraclePagingDialect extends AbstractSQLPagingDialect {
 			long currentPage) throws SQLException {
 		int selectIndex = sqlMetaData.getSelectIndex();
 		if (con.getMetaData().getDatabaseMajorVersion() >= 12) {// 12c以上版本
-			if (selectIndex > 0) {
+			if (selectIndex >= 0) {
 				if (sqlMetaData.getOffsetIndex() > 0 || sqlMetaData.getFetchIndex() > 0) {// 有OFFSET或FETCH子句，直接包装子查询并追加行数限制条件
 					return StringUtils.concat(namedSql.substring(0, selectIndex), SUBQUERY_START,
 							namedSql.substring(selectIndex), SUBQUERY_END, newPageEnd(pageSize, currentPage));
@@ -50,7 +50,7 @@ public class OraclePagingDialect extends AbstractSQLPagingDialect {
 			}
 		} else {
 			String pageStart = pageStart(SQLUtils.getColumnLabels(con, namedSql, params, sqlMetaData));
-			if (selectIndex > 0) {
+			if (selectIndex >= 0) {
 				return StringUtils.concat(namedSql.substring(0, selectIndex), pageStart,
 						namedSql.substring(selectIndex), pageEnd(pageSize, currentPage));
 			} else {

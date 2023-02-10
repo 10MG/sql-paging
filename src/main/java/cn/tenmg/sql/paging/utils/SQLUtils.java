@@ -335,27 +335,6 @@ public abstract class SQLUtils {
 	}
 
 	/**
-	 * 设置查询嵌入的开始位置
-	 * 
-	 * @param sqlMetaData
-	 *            SQL相关数据对象
-	 * @param sql
-	 *            SQL
-	 * @param r
-	 *            /r的索引
-	 * @param n
-	 *            /n的索引
-	 */
-	/*private static void setEmbedStartIndex(SQLMetaData sqlMetaData) {
-		int selectIndex = sqlMetaData.getSelectIndex();
-		if (selectIndex > 0) {
-			sqlMetaData.setEmbedStartIndex(selectIndex);
-		} else {
-			sqlMetaData.setEmbedStartIndex(0);
-		}
-	}*/
-
-	/**
 	 * 设置查询嵌入的结束位置
 	 * 
 	 * @param sqlMetaData
