@@ -23,7 +23,7 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 
 	private static final SQLServerPagingDialect INSTANCE = new SQLServerPagingDialect();
 
-	public static final SQLServerPagingDialect getInstance() {
+	public static SQLServerPagingDialect getInstance() {
 		return INSTANCE;
 	}
 

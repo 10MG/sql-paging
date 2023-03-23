@@ -9,7 +9,7 @@ import cn.tenmg.sql.paging.SQLMetaData;
 import cn.tenmg.sql.paging.utils.SQLUtils;
 
 /**
- * Oracle方言
+ * Oracle分页查询方言
  * 
  * @author June wjzhao@aliyun.com
  * 
@@ -25,7 +25,7 @@ public class OraclePagingDialect extends AbstractSQLPagingDialect {
 
 	private static final OraclePagingDialect INSTANCE = new OraclePagingDialect();
 
-	public static final OraclePagingDialect getInstance() {
+	public static OraclePagingDialect getInstance() {
 		return INSTANCE;
 	}
 

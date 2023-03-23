@@ -20,7 +20,7 @@ public class MySQLPagingDialect extends AbstractSQLPagingDialect {
 
 	private static final MySQLPagingDialect INSTANCE = new MySQLPagingDialect();
 
-	public static final MySQLPagingDialect getInstance() {
+	public static MySQLPagingDialect getInstance() {
 		return INSTANCE;
 	}
 

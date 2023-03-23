@@ -7,7 +7,7 @@ import cn.tenmg.dsl.utils.StringUtils;
 import cn.tenmg.sql.paging.SQLMetaData;
 
 /**
- * PostgreSQL方言
+ * PostgreSQL分页查询方言
  * 
  * @author June wjzhao@aliyun.com
  *
@@ -20,7 +20,7 @@ public class PostgreSQLPagingDialect extends AbstractSQLPagingDialect {
 
 	private static final PostgreSQLPagingDialect INSTANCE = new PostgreSQLPagingDialect();
 
-	public static final PostgreSQLPagingDialect getInstance() {
+	public static PostgreSQLPagingDialect getInstance() {
 		return INSTANCE;
 	}
 
