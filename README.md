@@ -18,6 +18,7 @@ MySQL      | 1.0+    | MySQLPagingDialect
 Oracle     | 1.0+    | OraclePagingDialect
 PostgreSQL | 1.0+    | PostgreSQLPagingDialect
 SQLServer  | 1.0+    | SQLServerPagingDialect
+SQLite     | 1.2.7+  | SQLitePagingDialect
 
 ## 使用说明
 
