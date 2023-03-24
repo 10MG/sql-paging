@@ -5,6 +5,9 @@
         <img alt="maven" src="https://img.shields.io/maven-central/v/cn.tenmg/sql-paging.svg?style=flat-square">
     </a>
     <a target="_blank" href="LICENSE"><img src="https://img.shields.io/:license-Apache%202.0-blue.svg"></a>
+    <a target="_blank" href='https://gitee.com/tenmg/sql-paging'>
+        <img src="https://gitee.com/tenmg/sql-paging/badge/star.svg?theme=white" />
+    </a>
 </p>
 
 ## 介绍
