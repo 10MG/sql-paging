@@ -38,7 +38,7 @@ SQLite     | 1.2.7+  | SQLitePagingDialect
 </dependency>
 ```
 
-2.  调用`PagingDialect.countSql`方法获取计数SQL（以MySQL数据库为例）
+2.  调用`SQLPagingDialect.countSql`方法获取计数SQL（以MySQL数据库为例）
 
 ```
 String namedSql = "……"；
@@ -48,7 +48,7 @@ String countSql = dialect.countSql(namedSql, sqlMetaData);
 ……
 ```
 
-3.  调用`PagingDialect.pageSql`方法获取分页查询SQL（以MySQL数据库为例）
+3.  调用`SQLPagingDialect.pageSql`方法获取分页查询SQL（以MySQL数据库为例）
 
 ```
 ……
