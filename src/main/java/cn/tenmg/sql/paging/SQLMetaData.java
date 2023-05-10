@@ -34,6 +34,11 @@ public class SQLMetaData {
 	 * 主查询GROUP BY子句索引
 	 */
 	private int groupByIndex = -1;
+	
+	/**
+	 * 主查询HAVING子句索引
+	 */
+	private int havingIndex = -1;
 
 	/**
 	 * 主查询ORDER BY子句索引
@@ -56,9 +61,9 @@ public class SQLMetaData {
 	private int fetchIndex = -1;
 
 	/**
-	 * 可嵌套查询的结束位置
+	 * 主查询是否含有 UNION 子句
 	 */
-	/* private int embedEndIndex = -1; */
+	private boolean union = false;
 
 	/**
 	 * SQL的长度
@@ -105,6 +110,14 @@ public class SQLMetaData {
 		this.groupByIndex = groupByIndex;
 	}
 
+	public int getHavingIndex() {
+		return havingIndex;
+	}
+
+	public void setHavingIndex(int havingIndex) {
+		this.havingIndex = havingIndex;
+	}
+
 	public int getOrderByIndex() {
 		return orderByIndex;
 	}
@@ -135,6 +148,14 @@ public class SQLMetaData {
 
 	public void setFetchIndex(int fetchIndex) {
 		this.fetchIndex = fetchIndex;
+	}
+
+	public boolean isUnion() {
+		return union;
+	}
+
+	public void setUnion(boolean union) {
+		this.union = union;
 	}
 
 	public int getLength() {

@@ -30,15 +30,16 @@ public abstract class SQLUtils {
 			RIGHT_BRACKET = '\u0029', COMMA = ',', SINGLE_QUOTATION_MARK = '\'', PARAM_MARK = '?',
 			LINE_SEPARATOR[] = { '\r', '\n' };
 
-	private static final String WITH = "WITH", SELECT = "SELECT", FROM = "FROM", FROM_REVERSE = "MORF",
-			ON_REVERSE = "NO", WHERE_REVERSE = "EREHW", GROUP_REVERSE = "PUORG", ORDER_REVERSE = "REDRO",
-			BY_REVERSE = "YB", LIMIT_REVERSE = "TIMIL", OFFSET_REVERSE = "TESFFO", FETCH_REVERSE = "HCTEF", AND = "AND",
-			BLANK_SPACE_AND = " " + AND, IMPOSSIBLE = " 1=0", WHERE_IMPOSSIBLE = "WHERE" + IMPOSSIBLE,
-			BLANK_SPACE_WHERE_IMPOSSIBLE = BLANK_SPACE + WHERE_IMPOSSIBLE;
+	private static final String WITH = "WITH", SELECT = "SELECT", FROM = "FROM", UNION = "UNION", FROM_REVERSE = "MORF",
+			ON_REVERSE = "NO", WHERE_REVERSE = "EREHW", GROUP_REVERSE = "PUORG", HAVING_REVERSE = "GNIVAH",
+			ORDER_REVERSE = "REDRO", BY_REVERSE = "YB", LIMIT_REVERSE = "TIMIL", OFFSET_REVERSE = "TESFFO",
+			FETCH_REVERSE = "HCTEF", AND = "AND", BLANK_SPACE_AND = " " + AND, IMPOSSIBLE = " 1=0",
+			WHERE_IMPOSSIBLE = "WHERE" + IMPOSSIBLE, BLANK_SPACE_WHERE_IMPOSSIBLE = BLANK_SPACE + WHERE_IMPOSSIBLE;
 
 	private static final int WITH_LEN = WITH.length(), SELECT_LEN = SELECT.length(), FROM_LEN = FROM.length();
 
-	//private static final Set<Character> LINE_TAIL = SetUtils.newHashSet('\r', '\n');
+	// private static final Set<Character> LINE_TAIL = SetUtils.newHashSet('\r',
+	// '\n');
 
 	/**
 	 * 获取SQL相关数据（不对SQL做null校验）
@@ -76,21 +77,45 @@ public abstract class SQLUtils {
 		ResultSet rs = null;
 		String columnLabels[] = null;
 		try {
-			int whereIndex = sqlMetaData.getWhereIndex(),
+			int whereIndex = sqlMetaData.getWhereIndex(), limitIndex = sqlMetaData.getLimitIndex(),
 					firstStatmentIndexAfterWhere = firstStatmentIndexAfterWhere(sqlMetaData);
+			if (limitIndex < 0) {
+				limitIndex = sqlMetaData.getOffsetIndex();
+			}
+			if (limitIndex < 0) {
+				limitIndex = sqlMetaData.getFetchIndex();
+			}
 			if (whereIndex > 0) {
 				if (firstStatmentIndexAfterWhere > 0) {
-					namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), AND,
-								IMPOSSIBLE);
+					if (limitIndex > firstStatmentIndexAfterWhere) {// 不含LIMIT/OFFSET/FETCH子句
+						namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), AND,
+								IMPOSSIBLE, namedSQL.substring(firstStatmentIndexAfterWhere, limitIndex));
+					} else {// 含LIMIT/OFFSET/FETCH子句
+						namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), AND,
+								IMPOSSIBLE, namedSQL.substring(firstStatmentIndexAfterWhere));
+					}
 				} else {
-					namedSQL = StringUtils.concat(namedSQL, BLANK_SPACE_AND, IMPOSSIBLE);
+					if (limitIndex > firstStatmentIndexAfterWhere) {// 含LIMIT/OFFSET/FETCH子句
+						namedSQL = StringUtils.concat(namedSQL.substring(0, limitIndex), BLANK_SPACE_AND, IMPOSSIBLE);
+					} else {// 不含LIMIT/OFFSET/FETCH子句
+						namedSQL = StringUtils.concat(namedSQL, BLANK_SPACE_AND, IMPOSSIBLE);
+					}
 				}
 			} else {
 				if (firstStatmentIndexAfterWhere > 0) {
-					namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere),
-								WHERE_IMPOSSIBLE);
+					if (limitIndex > firstStatmentIndexAfterWhere) {// 含LIMIT/OFFSET/FETCH子句
+						namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere),
+								WHERE_IMPOSSIBLE, namedSQL.substring(firstStatmentIndexAfterWhere, limitIndex));
+					} else {// 不含LIMIT/OFFSET/FETCH子句
+						namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere),
+								WHERE_IMPOSSIBLE, namedSQL.substring(firstStatmentIndexAfterWhere));
+					}
 				} else {
-					namedSQL = StringUtils.concat(namedSQL, BLANK_SPACE_WHERE_IMPOSSIBLE);
+					if (limitIndex > firstStatmentIndexAfterWhere) {// 含LIMIT/OFFSET/FETCH子句
+						namedSQL = StringUtils.concat(namedSQL.substring(0, limitIndex), BLANK_SPACE_WHERE_IMPOSSIBLE);
+					} else {// 不含LIMIT/OFFSET/FETCH子句
+						namedSQL = StringUtils.concat(namedSQL, BLANK_SPACE_WHERE_IMPOSSIBLE);
+					}
 				}
 			}
 			Script<List<Object>> sql = DSLUtils.toScript(namedSQL, params, JDBCParamsParser.getInstance());
@@ -119,16 +144,10 @@ public abstract class SQLUtils {
 	 *            SQL相关数据对象
 	 */
 	private static void rightAnalysis(String sql, SQLMetaData sqlMetaData) {
-		int length = sqlMetaData.getLength(), i = length - 1;
+		int length = sqlMetaData.getLength(), i = length - 1, deep = 0;
 		char c = sql.charAt(i);
 		boolean isString = false;
-		int deep = 0/*, lineSplitorIndexs[] = { length, length }*/;
 		StringBuilder sba = new StringBuilder(), sbb = new StringBuilder();
-		/*while (i > 0 && c <= BLANK_SPACE) {// 跳过空白字符
-			decideLineSplitorIndex(lineSplitorIndexs, c, i);// 找到末尾的首个换行符
-			c = sql.charAt(--i);
-		}*/
-		//setEmbedEndIndex(sqlMetaData, lineSplitorIndexs[0], lineSplitorIndexs[1]);
 		while (i > 0) {
 			if (isString) {
 				if (i > 2) {
@@ -166,12 +185,6 @@ public abstract class SQLUtils {
 								} else if (ORDER_REVERSE.equalsIgnoreCase(sb)) {
 									sqlMetaData.setOrderByIndex(i + 1);
 								}
-							} else if (LIMIT_REVERSE.equalsIgnoreCase(sb)) {
-								sqlMetaData.setLimitIndex(i + 1);
-							} else if (FETCH_REVERSE.equalsIgnoreCase(sb)) {
-								sqlMetaData.setFetchIndex(i + 1);
-							} else if (OFFSET_REVERSE.equalsIgnoreCase(sb)) {
-								sqlMetaData.setOffsetIndex(i + 1);
 							} else if (WHERE_REVERSE.equalsIgnoreCase(sb)) {
 								sqlMetaData.setWhereIndex(i + 1);
 								break;
@@ -180,6 +193,14 @@ public abstract class SQLUtils {
 							} else if (FROM_REVERSE.equalsIgnoreCase(sb)) {
 								sqlMetaData.setFromIndex(i + 1);
 								break;
+							} else if (HAVING_REVERSE.equals(sa)) {
+								sqlMetaData.setHavingIndex(i + 1);
+							} else if (LIMIT_REVERSE.equalsIgnoreCase(sb)) {
+								sqlMetaData.setLimitIndex(i + 1);
+							} else if (OFFSET_REVERSE.equalsIgnoreCase(sb)) {
+								sqlMetaData.setOffsetIndex(i + 1);
+							} else if (FETCH_REVERSE.equalsIgnoreCase(sb)) {
+								sqlMetaData.setFetchIndex(i + 1);
 							}
 							sba = sbb;
 							sbb = new StringBuilder();
@@ -211,7 +232,7 @@ public abstract class SQLUtils {
 		}
 		int backslashes = 0, lineSplitorIndexs[] = { 0, 0 };
 		char[] charsBefore = { BLANK_SPACE, BLANK_SPACE };
-		boolean isString = false, isWith = false;// 是否子字符串区域，是否在WITH子句区域
+		boolean isString = false, isWith = false;// 是否在字符串区域，是否在WITH子句区域
 		StringBuilder sb = new StringBuilder();
 		while (i < max) {
 			char c = sql.charAt(i);
@@ -280,12 +301,18 @@ public abstract class SQLUtils {
 							}
 							String s = sb.toString();
 							if (SELECT.equalsIgnoreCase(s)) {
-								sqlMetaData.setSelectIndex(i - SELECT_LEN);
+								if (sqlMetaData.getSelectIndex() < 0) {
+									sqlMetaData.setSelectIndex(i - SELECT_LEN);
+								}
 							} else if (FROM.equalsIgnoreCase(s)) {
-								sqlMetaData.setFromIndex(i - FROM_LEN);
+								if (sqlMetaData.getFromIndex() < 0) {
+									sqlMetaData.setFromIndex(i - FROM_LEN);
+								}
 							} else if (WITH.equalsIgnoreCase(s)) {
 								sqlMetaData.setWithIndex(i - WITH_LEN);
 								isWith = true;
+							} else if (UNION.equalsIgnoreCase(s)) {
+								sqlMetaData.setUnion(true);
 							}
 						}
 						sb.setLength(0);
@@ -296,7 +323,6 @@ public abstract class SQLUtils {
 				}
 			}
 		}
-		//setEmbedStartIndex(sqlMetaData);
 	}
 
 	/**
@@ -334,33 +360,13 @@ public abstract class SQLUtils {
 		}
 	}
 
-	/**
-	 * 设置查询嵌入的结束位置
-	 * 
-	 * @param sqlMetaData
-	 *            SQL相关数据对象
-	 * @param r
-	 *            /r的索引
-	 * @param n
-	 *            /n的索引
-	 */
-	/*private static void setEmbedEndIndex(SQLMetaData sqlMetaData, int r, int n) {
-		if (r < n) {
-			sqlMetaData.setEmbedEndIndex(r);
-		} else if (r > n) {
-			sqlMetaData.setEmbedEndIndex(n);
-		} else {
-			sqlMetaData.setEmbedEndIndex(sqlMetaData.getLength());
-		}
-	}*/
-
 	private static int firstStatmentIndexAfterWhere(SQLMetaData sqlMetaData) {
-		int index = sqlMetaData.getOrderByIndex();
+		int index = sqlMetaData.getGroupByIndex();
 		if (index < 0) {
-			index = sqlMetaData.getLimitIndex();
+			index = sqlMetaData.getHavingIndex();
 		}
 		if (index < 0) {
-			index = sqlMetaData.getOffsetIndex();
+			index = sqlMetaData.getOrderByIndex();
 		}
 		return index;
 	}
