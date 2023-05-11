@@ -11,7 +11,7 @@
 </p>
 
 ## 介绍
-sql-paging是一个SQL分页查询方言类库，它原来是Sqltool的智能分页组件，后剥离出来作为独立项目，以供更多组件集成其能力。通过调用相关API，可快速将一个普通SQL转换为一个特定数据库的计数（`COUNT`）SQL或分页查询SQL。sql-paging通过内置的SQL分析工具类分析实际调用的SQL，让方言生成最优的计数（`COUNT`）SQL或分页查询SQL。
+sql-paging是一个SQL分页查询方言类库，它原来是[Sqltool](https://gitee.com/tenmg/sqltool)的智能分页组件，后剥离出来作为独立项目，以供更多组件集成其能力。通过调用相关API，可快速将一个普通SQL转换为一个特定数据库的计数（`COUNT`）SQL或分页查询SQL。sql-paging通过内置的SQL分析工具类分析实际调用的SQL，让方言生成最优的计数（`COUNT`）SQL或分页查询SQL。
 
 ## 数据库支持
 
