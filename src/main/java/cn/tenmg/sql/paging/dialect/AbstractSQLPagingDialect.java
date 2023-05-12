@@ -31,69 +31,85 @@ public abstract class AbstractSQLPagingDialect implements SQLPagingDialect {
 
 	@Override
 	public String countSql(String namedSql, SQLMetaData sqlMetaData) {
+		boolean isUnion = sqlMetaData.isUnion();
 		int selectIndex = sqlMetaData.getSelectIndex(), orderByIndex = sqlMetaData.getOrderByIndex(),
 				limitIndex = sqlMetaData.getLimitIndex();
 		if (limitIndex > 0) {// 含有LIMIT子句
-			return wrapCountSql(namedSql, selectIndex, orderByIndex, limitIndex, sqlMetaData.isUnion());
+			return wrapLimitedSqlToCountSql(namedSql, selectIndex, orderByIndex, limitIndex, isUnion);
 		} else {
 			int offsetIndex = sqlMetaData.getOffsetIndex();
 			if (offsetIndex > 0) {// 含有OFFSET子句
-				return wrapCountSql(namedSql, selectIndex, orderByIndex, offsetIndex, sqlMetaData.isUnion());
+				return wrapLimitedSqlToCountSql(namedSql, selectIndex, orderByIndex, offsetIndex, isUnion);
 			} else {
 				int fetchIndex = sqlMetaData.getFetchIndex();
-				if (fetchIndex > 0) {
-					return wrapCountSql(namedSql, selectIndex, orderByIndex, fetchIndex, sqlMetaData.isUnion());
+				if (fetchIndex > 0) {// 含有OFFSET子句
+					return wrapLimitedSqlToCountSql(namedSql, selectIndex, orderByIndex, fetchIndex, isUnion);
 				} else {
-					if (selectIndex >= 0) {
-						if (sqlMetaData.isUnion()) {
-							if (orderByIndex > selectIndex) {
-								return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
-										namedSql.substring(selectIndex, orderByIndex), COUNT_END);
-							} else {
-								return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
-										namedSql.substring(selectIndex), COUNT_END);
-							}
-						} else {
-							int fromIndex = sqlMetaData.getFromIndex();
-							if (fromIndex > selectIndex) {
-								int columnsBegin = selectIndex + SELECT_LEN;
-								String columns = namedSql.substring(columnsBegin, fromIndex),
-										select = namedSql.substring(0, columnsBegin);
-								if (columns.matches(COUNT_REGEX)) {
-									return namedSql;
-								} else {
-									int groupByIndex = sqlMetaData.getGroupByIndex();
-									if (groupByIndex > fromIndex) {
-										if (orderByIndex > fromIndex) {
-											return StringUtils.concat(select, COUNT,
-													namedSql.substring(fromIndex, orderByIndex));
-										} else {
-											return StringUtils.concat(select, COUNT, namedSql.substring(fromIndex));
-										}
-									}
-									columns = COUNT;
-								}
-								if (orderByIndex > selectIndex) {// 含ORDER BY子句
-									return StringUtils.concat(select, columns,
-											namedSql.substring(fromIndex, orderByIndex));
-								} else {
-									return StringUtils.concat(select, columns, namedSql.substring(fromIndex));
-								}
-							} else {
-								return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
-										namedSql.substring(selectIndex), COUNT_END);
-							}
-						}
-					} else {
-						return StringUtils.concat(COUNT_START, namedSql, COUNT_END);
-					}
+					return wrapUnLimitedSqlToCountSql(namedSql, selectIndex, sqlMetaData.getFromIndex(),
+							sqlMetaData.getGroupByIndex(), orderByIndex, isUnion);
 				}
 			}
 		}
 	}
 
 	/**
-	 * 包装查询SQL为查询总记录数的SQL
+	 * 包装不含行数限定条件的查询SQL为查询总记录数的SQL
+	 * 
+	 * @param namedSql
+	 *            可能含命名参数的查询SQL
+	 * @param selectIndex
+	 *            SELECT子句的开始位置
+	 * @param fromIndex
+	 *            FROM子句的开始位置
+	 * @param groupByIndex
+	 *            GROUP BY子句的开始位置
+	 * @param orderByIndex
+	 *            ORDER BY子句的开始位置
+	 * @param isUnion
+	 *            主查询是否含有 UNION 子句
+	 * @return 查询总记录数的SQL
+	 */
+	protected static String wrapUnLimitedSqlToCountSql(String namedSql, int selectIndex, int fromIndex,
+			int groupByIndex, int orderByIndex, boolean isUnion) {
+		if (selectIndex >= 0) {
+			if (isUnion) {
+				if (orderByIndex > selectIndex) {
+					return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
+							namedSql.substring(selectIndex, orderByIndex), COUNT_END);
+				} else {
+					return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
+							namedSql.substring(selectIndex), COUNT_END);
+				}
+			} else {
+				if (fromIndex > selectIndex && groupByIndex < fromIndex) {
+					int columnsBegin = selectIndex + SELECT_LEN;
+					if (namedSql.substring(columnsBegin, fromIndex).matches(COUNT_REGEX)) {
+						return namedSql;
+					} else {
+						String select = namedSql.substring(0, columnsBegin);
+						if (orderByIndex > fromIndex) {
+							return StringUtils.concat(select, COUNT, namedSql.substring(fromIndex, orderByIndex));
+						} else {
+							return StringUtils.concat(select, COUNT, namedSql.substring(fromIndex));
+						}
+					}
+				} else {
+					if (orderByIndex > fromIndex) {
+						return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
+								namedSql.substring(selectIndex, orderByIndex), COUNT_END);
+					} else {
+						return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
+								namedSql.substring(selectIndex), COUNT_END);
+					}
+				}
+			}
+		} else {
+			return StringUtils.concat(COUNT_START, namedSql, COUNT_END);
+		}
+	}
+
+	/**
+	 * 包装含有行数限定条件的查询SQL为查询总记录数的SQL
 	 * 
 	 * @param namedSql
 	 *            可能含命名参数的查询SQL
@@ -105,11 +121,11 @@ public abstract class AbstractSQLPagingDialect implements SQLPagingDialect {
 	 *            ORDER BY下一子句的开始位置
 	 * @param isUnion
 	 *            主查询是否含有 UNION 子句
-	 * @return 返回查询总记录数的SQL
+	 * @return 查询总记录数的SQL
 	 */
-	private static String wrapCountSql(String namedSql, int selectIndex, int orderByIndex,
+	private static String wrapLimitedSqlToCountSql(String namedSql, int selectIndex, int orderByIndex,
 			int firstStatementIndexAfterOrderby, boolean isUnion) {// 有 LIMIT、OFFSET或者FETCH子句
-		if (selectIndex > 0) {
+		if (selectIndex >= 0) {
 			if (orderByIndex > selectIndex) {// 含有 ORDER BY 子句
 				if (firstStatementIndexAfterOrderby > orderByIndex) {
 					namedSql = StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,

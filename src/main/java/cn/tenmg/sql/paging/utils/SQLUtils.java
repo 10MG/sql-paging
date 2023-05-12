@@ -38,9 +38,6 @@ public abstract class SQLUtils {
 
 	private static final int WITH_LEN = WITH.length(), SELECT_LEN = SELECT.length(), FROM_LEN = FROM.length();
 
-	// private static final Set<Character> LINE_TAIL = SetUtils.newHashSet('\r',
-	// '\n');
-
 	/**
 	 * 获取SQL相关数据（不对SQL做null校验）
 	 * 
@@ -87,10 +84,10 @@ public abstract class SQLUtils {
 			}
 			if (whereIndex > 0) {
 				if (firstStatmentIndexAfterWhere > 0) {
-					if (limitIndex > firstStatmentIndexAfterWhere) {// 不含LIMIT/OFFSET/FETCH子句
+					if (limitIndex > firstStatmentIndexAfterWhere) {// 含LIMIT/OFFSET/FETCH子句
 						namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), AND,
 								IMPOSSIBLE, namedSQL.substring(firstStatmentIndexAfterWhere, limitIndex));
-					} else {// 含LIMIT/OFFSET/FETCH子句
+					} else {// 不含LIMIT/OFFSET/FETCH子句
 						namedSQL = StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), AND,
 								IMPOSSIBLE, namedSQL.substring(firstStatmentIndexAfterWhere));
 					}

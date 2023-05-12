@@ -34,46 +34,19 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 
 	@Override
 	public String countSql(String namedSql, SQLMetaData sqlMetaData) {
-		int selectIndex = sqlMetaData.getSelectIndex(), offsetIndex = sqlMetaData.getOffsetIndex();
+		boolean isUnion = sqlMetaData.isUnion();
+		int selectIndex = sqlMetaData.getSelectIndex(), orderByIndex = sqlMetaData.getOrderByIndex(),
+				offsetIndex = sqlMetaData.getOffsetIndex();
 		if (selectIndex >= 0) {
 			if (offsetIndex > selectIndex) {// 有OFFSET子句，直接包装子查询
-				return wrapCountSql(namedSql, selectIndex, sqlMetaData.getOrderByIndex(), offsetIndex,
-						sqlMetaData.isUnion());
+				return wrapLimitedSqlToCountSql(namedSql, selectIndex, orderByIndex, offsetIndex, isUnion);
 			} else {// 没有OFFSET子句
 				int fetchIndex = sqlMetaData.getFetchIndex();
 				if (offsetIndex > selectIndex) {// 有FETCH子句，按理说SQLServer含FETCH必须含OFFSET（这里假设以后SQLServer支持没有OFFSET的FETCH）
-					return wrapCountSql(namedSql, selectIndex, sqlMetaData.getOrderByIndex(), fetchIndex,
-							sqlMetaData.isUnion());
+					return wrapLimitedSqlToCountSql(namedSql, selectIndex, orderByIndex, fetchIndex, isUnion);
 				} else {
-					if (sqlMetaData.isUnion()) {// 含有UNION子句
-						int orderByIndex = sqlMetaData.getOrderByIndex();
-						if (orderByIndex > selectIndex) {// 有 ORDER BY 子句
-							return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
-									namedSql.substring(selectIndex, orderByIndex), COUNT_END);
-						} else {// 没有 ORDER BY 子句
-							return StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
-									namedSql.substring(selectIndex), COUNT_END);
-						}
-					} else {
-						int fromIndex = sqlMetaData.getFromIndex();
-						if (fromIndex > selectIndex) {
-							int columnsBegin = selectIndex + SELECT_LEN;
-							if (namedSql.substring(columnsBegin, fromIndex).matches(COUNT_REGEX)) {
-								return namedSql;
-							} else {
-								String select = namedSql.substring(0, columnsBegin);
-								int orderByIndex = sqlMetaData.getOrderByIndex();
-								if (orderByIndex > fromIndex) {
-									return StringUtils.concat(select, COUNT,
-											namedSql.substring(fromIndex, orderByIndex));
-								} else {
-									return StringUtils.concat(select, COUNT, namedSql.substring(fromIndex));
-								}
-							}
-						} else {
-							return StringUtils.concat(COUNT_START, namedSql, COUNT_END);
-						}
-					}
+					return wrapUnLimitedSqlToCountSql(namedSql, selectIndex, sqlMetaData.getFromIndex(),
+							sqlMetaData.getGroupByIndex(), orderByIndex, isUnion);
 				}
 			}
 		} else {
@@ -89,12 +62,13 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 		if (selectIndex >= 0) {
 			int offsetIndex = sqlMetaData.getOffsetIndex();
 			if (offsetIndex > selectIndex) {// 有OFFSET子句，直接包装子查询并追加行数限制条件
-				return wrapPageSql(namedSql, pageStart(SQLUtils.getColumnLabels(con, namedSql, params, sqlMetaData)),
-						pageEnd, selectIndex, sqlMetaData.getOrderByIndex(), offsetIndex, sqlMetaData.isUnion());
+				return wrapLimitedSqlToPageSql(namedSql,
+						pageStart(SQLUtils.getColumnLabels(con, namedSql, params, sqlMetaData)), pageEnd, selectIndex,
+						sqlMetaData.getOrderByIndex(), offsetIndex, sqlMetaData.isUnion());
 			} else {// 没有OFFSET子句
 				int fetchIndex = sqlMetaData.getFetchIndex();
 				if (fetchIndex > selectIndex) {// 有FETCH子句，按理说SQLServer含FETCH必须含OFFSET（这里假设以后SQLServer支持没有OFFSET的FETCH）
-					return wrapPageSql(namedSql,
+					return wrapLimitedSqlToPageSql(namedSql,
 							pageStart(SQLUtils.getColumnLabels(con, namedSql, params, sqlMetaData)), pageEnd,
 							selectIndex, sqlMetaData.getOrderByIndex(), fetchIndex, sqlMetaData.isUnion());
 				} else {
@@ -106,8 +80,8 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 						return StringUtils.concat(namedSql.substring(0, selectIndex),
 								pageStart(SQLUtils.getColumnLabels(con, namedSql, params, sqlMetaData)),
 								namedSql.substring(selectIndex, selectEndIndex), SQLUtils.BLANK_SPACE, CONST_RN,
-								insertRowNumAfterSelect(namedSql.substring(selectEndIndex)), SQLUtils.BLANK_SPACE,
-								ORDER_BY, pageEnd, SUBQUERY_END);
+								insertConstantColumnAfterSelect(namedSql.substring(selectEndIndex)),
+								SQLUtils.BLANK_SPACE, ORDER_BY, pageEnd, SUBQUERY_END);
 					}
 				}
 			}
@@ -119,7 +93,7 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 	}
 
 	/**
-	 * 包装查询SQL为查询总记录数的SQL
+	 * 包装含有行数限定条件的查询SQL为查询总记录数的SQL
 	 * 
 	 * @param namedSql
 	 *            可能含命名参数的查询SQL
@@ -133,7 +107,7 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 	 *            主查询是否含有 UNION 子句
 	 * @return 返回查询总记录数的SQL
 	 */
-	private static String wrapCountSql(String namedSql, int selectIndex, int orderByIndex,
+	private static String wrapLimitedSqlToCountSql(String namedSql, int selectIndex, int orderByIndex,
 			int firstStatementIndexAfterOrderby, boolean isUnion) {// 有 OFFSET 或者 FETCH 子句
 		if (orderByIndex > selectIndex) {// 有 ORDER BY 子句
 			namedSql = StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
@@ -143,7 +117,8 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 			if (isUnion) {// 有 UNION 子句
 				namedSql = StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
 						namedSql.substring(selectIndex, selectEndIndex), SQLUtils.BLANK_SPACE, CONST_RN,
-						insertRowNumAfterSelect(namedSql.substring(selectEndIndex, firstStatementIndexAfterOrderby)),
+						insertConstantColumnAfterSelect(
+								namedSql.substring(selectEndIndex, firstStatementIndexAfterOrderby)),
 						ORDER_BY, SQLUtils.BLANK_SPACE, namedSql.substring(firstStatementIndexAfterOrderby), COUNT_END);
 			} else {
 				namedSql = StringUtils.concat(namedSql.substring(0, selectIndex), COUNT_START,
@@ -155,7 +130,14 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 		return namedSql;
 	}
 
-	private static StringBuilder insertRowNumAfterSelect(String sql) {
+	/**
+	 * 在SQL的主查询的所有SELECT子句之后插入一个常量列，用于排序
+	 * 
+	 * @param sql
+	 *            查询SQL（或片段）
+	 * @return 在主查询的所有SELECT子句之后插入一个常量列的SQL
+	 */
+	private static StringBuilder insertConstantColumnAfterSelect(String sql) {
 		int backslashes = 0, deep = 0;
 		char a = SQLUtils.BLANK_SPACE, b = SQLUtils.BLANK_SPACE;
 		boolean isString = false;// 是否在字符串区域
@@ -201,7 +183,7 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 	}
 
 	/**
-	 * 包装查询SQL为查询总记录数的SQL
+	 * 包装含有行数限定条件的查询SQL为查询总记录数的SQL
 	 * 
 	 * @param namedSql
 	 *            可能含命名参数的查询SQL
@@ -215,7 +197,7 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 	 *            主查询是否含有 UNION 子句
 	 * @return 返回查询总记录数的SQL
 	 */
-	private static String wrapPageSql(String namedSql, String pageStart, String pageEnd, int selectIndex,
+	private static String wrapLimitedSqlToPageSql(String namedSql, String pageStart, String pageEnd, int selectIndex,
 			int orderByIndex, int firstStatementIndexAfterOrderby, boolean isUnion) {
 		if (orderByIndex > selectIndex) {
 			return StringUtils.concat(namedSql.substring(0, selectIndex), pageStart, SUBQUERY_START,
@@ -226,7 +208,8 @@ public class SQLServerPagingDialect extends AbstractSQLPagingDialect {
 			if (isUnion) {// 有 UNION 子句
 				namedSql = StringUtils.concat(namedSql.substring(0, selectIndex), pageStart,
 						namedSql.substring(selectIndex, selectEndIndex), SQLUtils.BLANK_SPACE, CONST_RN,
-						insertRowNumAfterSelect(namedSql.substring(selectEndIndex, firstStatementIndexAfterOrderby)),
+						insertConstantColumnAfterSelect(
+								namedSql.substring(selectEndIndex, firstStatementIndexAfterOrderby)),
 						ORDER_BY, " ", namedSql.substring(firstStatementIndexAfterOrderby), SUBQUERY_END,
 						SQLUtils.BLANK_SPACE, ORDER_BY, pageEnd);
 			} else {

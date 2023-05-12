@@ -17,10 +17,22 @@ public class SQLitePagingDialectTest {
 
 	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("sqlite.properties");
 
-	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
-			COUNT_SQL = "SELECT COUNT(*) FROM (" + SQL + ") SQL_PAGING",
-			ORDER_BY_SQL = SQL + " ORDER BY STAFF_ID,STAFF_NAME", GROUP_BY_SQL = SQL + " GROUP BY STAFF_ID,STAFF_NAME",
-			LIMIT_SQL = SQL + " LIMIT 10";
+	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
+			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO", ORDER_BY_SQL = SQL + " ORDER BY STAFF_ID,STAFF_NAME",
+			GROUP_BY_SQL = SQL + " GROUP BY STAFF_ID,STAFF_NAME", LIMIT_SQL = SQL + " LIMIT 10",
+			GROUP_BY_ORDER_BY_SQL = "SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME",
+			GROUP_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME LIMIT 10",
+			ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO ORDER BY STAFF_NAME LIMIT 10",
+			GROUP_BY_ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME LIMIT 10",
+
+			UNION_SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
+			UNION_COUNT_SQL = "SELECT COUNT(*) FROM (" + UNION_SQL + ") SQL_PAGING",
+			UNION_ORDER_BY_SQL = UNION_SQL + " ORDER BY STAFF_ID,STAFF_NAME",
+			UNION_GROUP_BY_SQL = UNION_SQL + " GROUP BY STAFF_ID,STAFF_NAME", UNION_LIMIT_SQL = UNION_SQL + " LIMIT 10",
+			UNION_GROUP_BY_ORDER_BY_SQL = "SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME",
+			UNION_GROUP_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME LIMIT 10",
+			UNION_ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO ORDER BY STAFF_NAME LIMIT 10",
+			UNION_GROUP_BY_ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME LIMIT 10";
 
 	private static final SQLPagingDialect pagingDialect = SQLitePagingDialect.getInstance();
 
@@ -29,16 +41,74 @@ public class SQLitePagingDialectTest {
 		Assertions.assertEquals(COUNT_SQL, pagingDialect.countSql(SQL, SQLUtils.getSQLMetaData(SQL)));
 
 		Assertions.assertEquals(COUNT_SQL, pagingDialect.countSql(ORDER_BY_SQL, SQLUtils.getSQLMetaData(ORDER_BY_SQL))
-				.replaceAll("[\\s]+\\)", ")"));
+				.replaceAll("[\\s]+\\)", ")").trim());
 
 		Assertions.assertEquals(
-				"SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_ID,STAFF_NAME) SQL_PAGING",
+				"SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_ID,STAFF_NAME) SQL_PAGING",
 				pagingDialect.countSql(GROUP_BY_SQL, SQLUtils.getSQLMetaData(GROUP_BY_SQL)).replaceAll("[\\s]+\\)",
 						")"));
 
+		Assertions.assertEquals("SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
+				pagingDialect.countSql(LIMIT_SQL, SQLUtils.getSQLMetaData(LIMIT_SQL)).replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME) SQL_PAGING",
+				pagingDialect.countSql(GROUP_BY_ORDER_BY_SQL, SQLUtils.getSQLMetaData(GROUP_BY_ORDER_BY_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME LIMIT 10) SQL_PAGING",
+				pagingDialect.countSql(GROUP_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(GROUP_BY_LIMIT_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals("SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
+				pagingDialect.countSql(ORDER_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(ORDER_BY_LIMIT_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME LIMIT 10) SQL_PAGING",
+				pagingDialect
+						.countSql(GROUP_BY_ORDER_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(GROUP_BY_ORDER_BY_LIMIT_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(UNION_COUNT_SQL, pagingDialect.countSql(UNION_SQL, SQLUtils.getSQLMetaData(UNION_SQL)));
+
+		Assertions.assertEquals(UNION_COUNT_SQL,
+				pagingDialect.countSql(UNION_ORDER_BY_SQL, SQLUtils.getSQLMetaData(UNION_ORDER_BY_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_ID,STAFF_NAME) SQL_PAGING",
+				pagingDialect.countSql(UNION_GROUP_BY_SQL, SQLUtils.getSQLMetaData(UNION_GROUP_BY_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
 		Assertions.assertEquals(
 				"SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
-				pagingDialect.countSql(LIMIT_SQL, SQLUtils.getSQLMetaData(LIMIT_SQL)).replaceAll("[\\s]+\\)", ")"));
+				pagingDialect.countSql(UNION_LIMIT_SQL, SQLUtils.getSQLMetaData(UNION_LIMIT_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME) SQL_PAGING",
+				pagingDialect
+						.countSql(UNION_GROUP_BY_ORDER_BY_SQL, SQLUtils.getSQLMetaData(UNION_GROUP_BY_ORDER_BY_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME LIMIT 10) SQL_PAGING",
+				pagingDialect.countSql(UNION_GROUP_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(UNION_GROUP_BY_LIMIT_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
+				pagingDialect.countSql(UNION_ORDER_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(UNION_ORDER_BY_LIMIT_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
+
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME LIMIT 10) SQL_PAGING",
+				pagingDialect
+						.countSql(UNION_GROUP_BY_ORDER_BY_LIMIT_SQL,
+								SQLUtils.getSQLMetaData(UNION_GROUP_BY_ORDER_BY_LIMIT_SQL))
+						.replaceAll("[\\s]+\\)", ")"));
 	}
 
 	@Test
@@ -58,6 +128,46 @@ public class SQLitePagingDialectTest {
 
 			Assertions.assertEquals("SELECT * FROM (" + LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
 					pagingDialect.pageSql(con, LIMIT_SQL, null, SQLUtils.getSQLMetaData(LIMIT_SQL), 10, 1));
+
+			Assertions.assertEquals(GROUP_BY_ORDER_BY_SQL + " LIMIT 0,10", pagingDialect.pageSql(con,
+					GROUP_BY_ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(GROUP_BY_ORDER_BY_SQL), 10, 1));
+
+			Assertions.assertEquals("SELECT * FROM (" + GROUP_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10", pagingDialect
+					.pageSql(con, GROUP_BY_LIMIT_SQL, null, SQLUtils.getSQLMetaData(GROUP_BY_LIMIT_SQL), 10, 1));
+
+			Assertions.assertEquals("SELECT * FROM (" + ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10", pagingDialect
+					.pageSql(con, ORDER_BY_LIMIT_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_LIMIT_SQL), 10, 1));
+
+			Assertions.assertEquals("SELECT * FROM (" + GROUP_BY_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+					pagingDialect.pageSql(con, GROUP_BY_ORDER_BY_LIMIT_SQL, null,
+							SQLUtils.getSQLMetaData(GROUP_BY_ORDER_BY_LIMIT_SQL), 10, 1));
+
+			Assertions.assertEquals(UNION_SQL + " LIMIT 0,10",
+					pagingDialect.pageSql(con, UNION_SQL, null, SQLUtils.getSQLMetaData(UNION_SQL), 10, 1));
+
+			Assertions.assertEquals(UNION_ORDER_BY_SQL + " LIMIT 0,10", pagingDialect.pageSql(con, UNION_ORDER_BY_SQL,
+					null, SQLUtils.getSQLMetaData(UNION_ORDER_BY_SQL), 10, 1));
+
+			Assertions.assertEquals(UNION_GROUP_BY_SQL + " LIMIT 0,10", pagingDialect.pageSql(con, UNION_GROUP_BY_SQL,
+					null, SQLUtils.getSQLMetaData(UNION_GROUP_BY_SQL), 10, 1));
+
+			Assertions.assertEquals("SELECT * FROM (" + UNION_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+					pagingDialect.pageSql(con, UNION_LIMIT_SQL, null, SQLUtils.getSQLMetaData(UNION_LIMIT_SQL), 10, 1));
+
+			Assertions.assertEquals(UNION_GROUP_BY_ORDER_BY_SQL + " LIMIT 0,10", pagingDialect.pageSql(con,
+					UNION_GROUP_BY_ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(UNION_GROUP_BY_ORDER_BY_SQL), 10, 1));
+
+			Assertions.assertEquals("SELECT * FROM (" + UNION_GROUP_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+					pagingDialect.pageSql(con, UNION_GROUP_BY_LIMIT_SQL, null,
+							SQLUtils.getSQLMetaData(UNION_GROUP_BY_LIMIT_SQL), 10, 1));
+
+			Assertions.assertEquals("SELECT * FROM (" + UNION_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+					pagingDialect.pageSql(con, UNION_ORDER_BY_LIMIT_SQL, null,
+							SQLUtils.getSQLMetaData(UNION_ORDER_BY_LIMIT_SQL), 10, 1));
+
+			Assertions.assertEquals("SELECT * FROM (" + UNION_GROUP_BY_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+					pagingDialect.pageSql(con, UNION_GROUP_BY_ORDER_BY_LIMIT_SQL, null,
+							SQLUtils.getSQLMetaData(UNION_GROUP_BY_ORDER_BY_LIMIT_SQL), 10, 1));
 		} finally {
 			JDBCUtils.close(con);
 		}
