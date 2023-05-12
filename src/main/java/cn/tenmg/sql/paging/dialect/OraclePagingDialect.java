@@ -37,7 +37,15 @@ public class OraclePagingDialect extends AbstractSQLPagingDialect {
 	public String pageSql(Connection con, String namedSql, Map<String, ?> params, SQLMetaData sqlMetaData, int pageSize,
 			long currentPage) throws SQLException {
 		int selectIndex = sqlMetaData.getSelectIndex();
-		if (con.getMetaData().getDatabaseMajorVersion() >= 12) {// 12c以上版本
+		if (con == null || con.getMetaData().getDatabaseMajorVersion() < 12) {
+			String pageStart = pageStart(SQLUtils.getColumnLabels(con, namedSql, params, sqlMetaData));
+			if (selectIndex >= 0) {
+				return StringUtils.concat(namedSql.substring(0, selectIndex), pageStart,
+						namedSql.substring(selectIndex), pageEnd(pageSize, currentPage));
+			} else {
+				return StringUtils.concat(pageStart, namedSql, pageEnd(pageSize, currentPage));
+			}
+		} else {// 12c以上版本
 			if (selectIndex >= 0) {
 				if (sqlMetaData.getOffsetIndex() > 0 || sqlMetaData.getFetchIndex() > 0) {// 有OFFSET或FETCH子句，直接包装子查询并追加行数限制条件
 					return StringUtils.concat(namedSql.substring(0, selectIndex), SUBQUERY_START,
@@ -47,14 +55,6 @@ public class OraclePagingDialect extends AbstractSQLPagingDialect {
 				}
 			} else {
 				return StringUtils.concat(SUBQUERY_START, namedSql, SUBQUERY_END, newPageEnd(pageSize, currentPage));
-			}
-		} else {
-			String pageStart = pageStart(SQLUtils.getColumnLabels(con, namedSql, params, sqlMetaData));
-			if (selectIndex >= 0) {
-				return StringUtils.concat(namedSql.substring(0, selectIndex), pageStart,
-						namedSql.substring(selectIndex), pageEnd(pageSize, currentPage));
-			} else {
-				return StringUtils.concat(pageStart, namedSql, pageEnd(pageSize, currentPage));
 			}
 		}
 	}
