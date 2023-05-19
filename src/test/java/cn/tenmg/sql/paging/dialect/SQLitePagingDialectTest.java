@@ -1,4 +1,4 @@
-package cn.tenmg.sql.paging;
+package cn.tenmg.sql.paging.dialect;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,13 +9,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
-import cn.tenmg.sql.paging.dialect.MySQLPagingDialect;
+import cn.tenmg.sql.paging.SQLPagingDialect;
+import cn.tenmg.sql.paging.dialect.SQLitePagingDialect;
 import cn.tenmg.sql.paging.utils.JDBCUtils;
 import cn.tenmg.sql.paging.utils.SQLUtils;
 
-public class MySQLPagingDialectTest {
+public class SQLitePagingDialectTest {
 
-	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("mysql.properties");
+	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("sqlite.properties");
 
 	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
 			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO", ORDER_BY_SQL = SQL + " ORDER BY STAFF_ID,STAFF_NAME",
@@ -34,7 +35,7 @@ public class MySQLPagingDialectTest {
 			UNION_ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO ORDER BY STAFF_NAME LIMIT 10",
 			UNION_GROUP_BY_ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME LIMIT 10";
 
-	private static final SQLPagingDialect pagingDialect = MySQLPagingDialect.getInstance();
+	private static final SQLPagingDialect pagingDialect = SQLitePagingDialect.getInstance();
 
 	@Test
 	public void countSqlTest() {

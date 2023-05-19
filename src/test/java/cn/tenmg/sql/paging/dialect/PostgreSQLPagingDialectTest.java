@@ -1,4 +1,4 @@
-package cn.tenmg.sql.paging;
+package cn.tenmg.sql.paging.dialect;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,17 +9,19 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
-import cn.tenmg.sql.paging.dialect.SQLitePagingDialect;
+import cn.tenmg.sql.paging.SQLPagingDialect;
+import cn.tenmg.sql.paging.dialect.PostgreSQLPagingDialect;
 import cn.tenmg.sql.paging.utils.JDBCUtils;
 import cn.tenmg.sql.paging.utils.SQLUtils;
 
-public class SQLitePagingDialectTest {
+public class PostgreSQLPagingDialectTest {
 
-	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("sqlite.properties");
+	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("postgresql.properties");
 
 	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
-			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO", ORDER_BY_SQL = SQL + " ORDER BY STAFF_ID,STAFF_NAME",
-			GROUP_BY_SQL = SQL + " GROUP BY STAFF_ID,STAFF_NAME", LIMIT_SQL = SQL + " LIMIT 10",
+			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO",
+			ORDER_BY_SQL = SQL + " ORDER BY STAFF_ID,STAFF_NAME", GROUP_BY_SQL = SQL + " GROUP BY STAFF_ID,STAFF_NAME",
+			LIMIT_SQL = SQL + " LIMIT 10",
 			GROUP_BY_ORDER_BY_SQL = "SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME",
 			GROUP_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME LIMIT 10",
 			ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO ORDER BY STAFF_NAME LIMIT 10",
@@ -34,7 +36,7 @@ public class SQLitePagingDialectTest {
 			UNION_ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO ORDER BY STAFF_NAME LIMIT 10",
 			UNION_GROUP_BY_ORDER_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO UNION ALL SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME LIMIT 10";
 
-	private static final SQLPagingDialect pagingDialect = SQLitePagingDialect.getInstance();
+	private static final SQLPagingDialect pagingDialect = PostgreSQLPagingDialect.getInstance();
 
 	@Test
 	public void countSqlTest() {
@@ -48,7 +50,8 @@ public class SQLitePagingDialectTest {
 				pagingDialect.countSql(GROUP_BY_SQL, SQLUtils.getSQLMetaData(GROUP_BY_SQL)).replaceAll("[\\s]+\\)",
 						")"));
 
-		Assertions.assertEquals("SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
 				pagingDialect.countSql(LIMIT_SQL, SQLUtils.getSQLMetaData(LIMIT_SQL)).replaceAll("[\\s]+\\)", ")"));
 
 		Assertions.assertEquals(
@@ -61,7 +64,8 @@ public class SQLitePagingDialectTest {
 				pagingDialect.countSql(GROUP_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(GROUP_BY_LIMIT_SQL))
 						.replaceAll("[\\s]+\\)", ")"));
 
-		Assertions.assertEquals("SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
+		Assertions.assertEquals(
+				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
 				pagingDialect.countSql(ORDER_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(ORDER_BY_LIMIT_SQL))
 						.replaceAll("[\\s]+\\)", ")"));
 
@@ -117,55 +121,58 @@ public class SQLitePagingDialectTest {
 		try {
 			con = DriverManager.getConnection(config.getProperty("url"), config.getProperty("username"),
 					config.getProperty("password"));
-			Assertions.assertEquals(SQL + " LIMIT 0,10",
+			Assertions.assertEquals(SQL + " LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, SQL, null, SQLUtils.getSQLMetaData(SQL), 10, 1));
 
-			Assertions.assertEquals(ORDER_BY_SQL + " LIMIT 0,10",
+			Assertions.assertEquals(ORDER_BY_SQL + " LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_SQL), 10, 1));
 
-			Assertions.assertEquals(GROUP_BY_SQL + " LIMIT 0,10",
+			Assertions.assertEquals(GROUP_BY_SQL + " LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, GROUP_BY_SQL, null, SQLUtils.getSQLMetaData(GROUP_BY_SQL), 10, 1));
 
-			Assertions.assertEquals("SELECT * FROM (" + LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+			Assertions.assertEquals("SELECT * FROM (" + LIMIT_SQL + ") SQL_PAGING LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, LIMIT_SQL, null, SQLUtils.getSQLMetaData(LIMIT_SQL), 10, 1));
 
-			Assertions.assertEquals(GROUP_BY_ORDER_BY_SQL + " LIMIT 0,10", pagingDialect.pageSql(con,
+			Assertions.assertEquals(GROUP_BY_ORDER_BY_SQL + " LIMIT 10 OFFSET 0", pagingDialect.pageSql(con,
 					GROUP_BY_ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(GROUP_BY_ORDER_BY_SQL), 10, 1));
 
-			Assertions.assertEquals("SELECT * FROM (" + GROUP_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10", pagingDialect
-					.pageSql(con, GROUP_BY_LIMIT_SQL, null, SQLUtils.getSQLMetaData(GROUP_BY_LIMIT_SQL), 10, 1));
+			Assertions.assertEquals("SELECT * FROM (" + GROUP_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 10 OFFSET 0",
+					pagingDialect.pageSql(con, GROUP_BY_LIMIT_SQL, null, SQLUtils.getSQLMetaData(GROUP_BY_LIMIT_SQL),
+							10, 1));
 
-			Assertions.assertEquals("SELECT * FROM (" + ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10", pagingDialect
-					.pageSql(con, ORDER_BY_LIMIT_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_LIMIT_SQL), 10, 1));
+			Assertions.assertEquals("SELECT * FROM (" + ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 10 OFFSET 0",
+					pagingDialect.pageSql(con, ORDER_BY_LIMIT_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_LIMIT_SQL),
+							10, 1));
 
-			Assertions.assertEquals("SELECT * FROM (" + GROUP_BY_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+			Assertions.assertEquals("SELECT * FROM (" + GROUP_BY_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, GROUP_BY_ORDER_BY_LIMIT_SQL, null,
 							SQLUtils.getSQLMetaData(GROUP_BY_ORDER_BY_LIMIT_SQL), 10, 1));
 
-			Assertions.assertEquals(UNION_SQL + " LIMIT 0,10",
+			Assertions.assertEquals(UNION_SQL + " LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, UNION_SQL, null, SQLUtils.getSQLMetaData(UNION_SQL), 10, 1));
 
-			Assertions.assertEquals(UNION_ORDER_BY_SQL + " LIMIT 0,10", pagingDialect.pageSql(con, UNION_ORDER_BY_SQL,
-					null, SQLUtils.getSQLMetaData(UNION_ORDER_BY_SQL), 10, 1));
+			Assertions.assertEquals(UNION_ORDER_BY_SQL + " LIMIT 10 OFFSET 0", pagingDialect.pageSql(con,
+					UNION_ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(UNION_ORDER_BY_SQL), 10, 1));
 
-			Assertions.assertEquals(UNION_GROUP_BY_SQL + " LIMIT 0,10", pagingDialect.pageSql(con, UNION_GROUP_BY_SQL,
-					null, SQLUtils.getSQLMetaData(UNION_GROUP_BY_SQL), 10, 1));
+			Assertions.assertEquals(UNION_GROUP_BY_SQL + " LIMIT 10 OFFSET 0", pagingDialect.pageSql(con,
+					UNION_GROUP_BY_SQL, null, SQLUtils.getSQLMetaData(UNION_GROUP_BY_SQL), 10, 1));
 
-			Assertions.assertEquals("SELECT * FROM (" + UNION_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+			Assertions.assertEquals("SELECT * FROM (" + UNION_LIMIT_SQL + ") SQL_PAGING LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, UNION_LIMIT_SQL, null, SQLUtils.getSQLMetaData(UNION_LIMIT_SQL), 10, 1));
 
-			Assertions.assertEquals(UNION_GROUP_BY_ORDER_BY_SQL + " LIMIT 0,10", pagingDialect.pageSql(con,
+			Assertions.assertEquals(UNION_GROUP_BY_ORDER_BY_SQL + " LIMIT 10 OFFSET 0", pagingDialect.pageSql(con,
 					UNION_GROUP_BY_ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(UNION_GROUP_BY_ORDER_BY_SQL), 10, 1));
 
-			Assertions.assertEquals("SELECT * FROM (" + UNION_GROUP_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+			Assertions.assertEquals("SELECT * FROM (" + UNION_GROUP_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, UNION_GROUP_BY_LIMIT_SQL, null,
 							SQLUtils.getSQLMetaData(UNION_GROUP_BY_LIMIT_SQL), 10, 1));
 
-			Assertions.assertEquals("SELECT * FROM (" + UNION_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+			Assertions.assertEquals("SELECT * FROM (" + UNION_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, UNION_ORDER_BY_LIMIT_SQL, null,
 							SQLUtils.getSQLMetaData(UNION_ORDER_BY_LIMIT_SQL), 10, 1));
 
-			Assertions.assertEquals("SELECT * FROM (" + UNION_GROUP_BY_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 0,10",
+			Assertions.assertEquals(
+					"SELECT * FROM (" + UNION_GROUP_BY_ORDER_BY_LIMIT_SQL + ") SQL_PAGING LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, UNION_GROUP_BY_ORDER_BY_LIMIT_SQL, null,
 							SQLUtils.getSQLMetaData(UNION_GROUP_BY_ORDER_BY_LIMIT_SQL), 10, 1));
 		} finally {

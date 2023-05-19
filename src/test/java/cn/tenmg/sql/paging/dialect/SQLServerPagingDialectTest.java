@@ -1,4 +1,4 @@
-package cn.tenmg.sql.paging;
+package cn.tenmg.sql.paging.dialect;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
+import cn.tenmg.sql.paging.SQLPagingDialect;
 import cn.tenmg.sql.paging.dialect.SQLServerPagingDialect;
 import cn.tenmg.sql.paging.utils.JDBCUtils;
 import cn.tenmg.sql.paging.utils.SQLUtils;
