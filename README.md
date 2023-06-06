@@ -165,12 +165,11 @@ FROM (
     FROM ORDER_INFO O
     WHERE O.CREATE_TIME >= :begin AND O.CREATE_TIME < :end
   ) T
-  ORDER BY AMT DESC
   LIMIT 100
 ) SQL_PAGING
 ```
 
-sql-paging没有误杀无辜者，不该去掉的当然要保留原样，这时候仅仅做了必要的包装。
+sql-paging没有误杀无辜者，除了去除 `ORDER BY` 子句之外，其他保留原样，保证了结果正确性的同时，提升了查询效率。
 
 ### pageSql
 
