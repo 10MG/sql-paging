@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
 import cn.tenmg.sql.paging.SQLPagingDialect;
-import cn.tenmg.sql.paging.dialect.OraclePagingDialect;
 import cn.tenmg.sql.paging.utils.JDBCUtils;
 import cn.tenmg.sql.paging.utils.SQLUtils;
 
