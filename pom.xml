@@ -6,7 +6,7 @@
 	<description>SQL分页查询解析框架</description>
 	<groupId>cn.tenmg</groupId>
 	<artifactId>sql-paging</artifactId>
-	<version>1.2.11</version>
+	<version>1.2.12</version>
 	<packaging>jar</packaging>
 
 	<name>sql-paging</name>
@@ -55,16 +55,15 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<dsl.version>1.3.5</dsl.version>
-		<slf4j-api.version>2.0.7</slf4j-api.version>
-		<junit-jupiter.version>5.9.3</junit-jupiter.version>
-		<junit-platform-launcher.version>1.9.3</junit-platform-launcher.version>
-		
-		<logback.version>1.3.8</logback.version>
-		<mysql-connector-j.version>8.0.33</mysql-connector-j.version>
+		<dsl.version>1.4.1</dsl.version>
+		<slf4j-api.version>2.0.9</slf4j-api.version>
+		<junit-jupiter.version>5.10.0</junit-jupiter.version>
+		<junit-platform-launcher.version>1.10.0</junit-platform-launcher.version>
+		<logback.version>1.3.11</logback.version>
+		<mysql-connector-j.version>8.1.0</mysql-connector-j.version>
 		<postgresql.version>42.6.0</postgresql.version>
-		<sqlite-jdbc.version>3.42.0.0</sqlite-jdbc.version>
-		<mssql-jdbc.version>9.4.1.jre8</mssql-jdbc.version>
+		<sqlite-jdbc.version>3.43.0.0</sqlite-jdbc.version>
+		<mssql-jdbc.version>12.4.1.jre8</mssql-jdbc.version>
 	</properties>
 
 	<dependencies>
