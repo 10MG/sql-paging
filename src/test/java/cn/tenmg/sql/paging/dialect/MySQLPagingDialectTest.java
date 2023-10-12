@@ -19,6 +19,8 @@ public class MySQLPagingDialectTest {
 
 	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
 			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO", ORDER_BY_SQL = SQL + " ORDER BY STAFF_ID,STAFF_NAME",
+			WITH_SQL = "WITH T AS (SELECT STAFF_ID, STAFF_NAME FROM STAFF_INFO WHERE STAFF_NAME LIKE :staffName) SELECT * FROM T",
+			WITH_COUNT_SQL = "WITH T AS (SELECT STAFF_ID, STAFF_NAME FROM STAFF_INFO WHERE STAFF_NAME LIKE :staffName) SELECT COUNT(*) FROM T",
 			GROUP_BY_SQL = SQL + " GROUP BY STAFF_ID,STAFF_NAME", LIMIT_SQL = SQL + " LIMIT 10",
 			GROUP_BY_ORDER_BY_SQL = "SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME",
 			GROUP_BY_LIMIT_SQL = "SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME LIMIT 10",
@@ -39,6 +41,8 @@ public class MySQLPagingDialectTest {
 	@Test
 	public void countSqlTest() {
 		Assertions.assertEquals(COUNT_SQL, pagingDialect.countSql(SQL, SQLUtils.getSQLMetaData(SQL)));
+
+		Assertions.assertEquals(WITH_COUNT_SQL, pagingDialect.countSql(WITH_SQL, SQLUtils.getSQLMetaData(WITH_SQL)));
 
 		Assertions.assertEquals(COUNT_SQL, pagingDialect.countSql(ORDER_BY_SQL, SQLUtils.getSQLMetaData(ORDER_BY_SQL))
 				.replaceAll("[\\s]+\\)", ")").trim());
@@ -120,6 +124,9 @@ public class MySQLPagingDialectTest {
 			Assertions.assertEquals(SQL + " LIMIT 0,10",
 					pagingDialect.pageSql(con, SQL, null, SQLUtils.getSQLMetaData(SQL), 10, 1));
 
+			Assertions.assertEquals(WITH_SQL + " LIMIT 0,10",
+					pagingDialect.pageSql(con, WITH_SQL, null, SQLUtils.getSQLMetaData(WITH_SQL), 10, 1));
+			
 			Assertions.assertEquals(ORDER_BY_SQL + " LIMIT 0,10",
 					pagingDialect.pageSql(con, ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_SQL), 10, 1));
 

@@ -19,6 +19,8 @@ public class PostgreSQLPagingDialectTest {
 
 	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
 			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO",
+			WITH_SQL = "WITH T AS (SELECT STAFF_ID, STAFF_NAME FROM STAFF_INFO WHERE STAFF_NAME LIKE :staffName) SELECT * FROM T",
+			WITH_COUNT_SQL = "WITH T AS (SELECT STAFF_ID, STAFF_NAME FROM STAFF_INFO WHERE STAFF_NAME LIKE :staffName) SELECT COUNT(*) FROM T",
 			ORDER_BY_SQL = SQL + " ORDER BY STAFF_ID,STAFF_NAME", GROUP_BY_SQL = SQL + " GROUP BY STAFF_ID,STAFF_NAME",
 			LIMIT_SQL = SQL + " LIMIT 10",
 			GROUP_BY_ORDER_BY_SQL = "SELECT STAFF_NAME FROM STAFF_INFO GROUP BY STAFF_NAME ORDER BY STAFF_NAME",
@@ -41,6 +43,8 @@ public class PostgreSQLPagingDialectTest {
 	public void countSqlTest() {
 		Assertions.assertEquals(COUNT_SQL, pagingDialect.countSql(SQL, SQLUtils.getSQLMetaData(SQL)));
 
+		Assertions.assertEquals(WITH_COUNT_SQL, pagingDialect.countSql(WITH_SQL, SQLUtils.getSQLMetaData(WITH_SQL)));
+
 		Assertions.assertEquals(COUNT_SQL, pagingDialect.countSql(ORDER_BY_SQL, SQLUtils.getSQLMetaData(ORDER_BY_SQL))
 				.replaceAll("[\\s]+\\)", ")").trim());
 
@@ -49,8 +53,7 @@ public class PostgreSQLPagingDialectTest {
 				pagingDialect.countSql(GROUP_BY_SQL, SQLUtils.getSQLMetaData(GROUP_BY_SQL)).replaceAll("[\\s]+\\)",
 						")"));
 
-		Assertions.assertEquals(
-				"SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
+		Assertions.assertEquals("SELECT COUNT(*) FROM (SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
 				pagingDialect.countSql(LIMIT_SQL, SQLUtils.getSQLMetaData(LIMIT_SQL)).replaceAll("[\\s]+\\)", ")"));
 
 		Assertions.assertEquals(
@@ -63,8 +66,7 @@ public class PostgreSQLPagingDialectTest {
 				pagingDialect.countSql(GROUP_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(GROUP_BY_LIMIT_SQL))
 						.replaceAll("[\\s]+\\)", ")"));
 
-		Assertions.assertEquals(
-				"SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
+		Assertions.assertEquals("SELECT COUNT(*) FROM (SELECT STAFF_NAME FROM STAFF_INFO LIMIT 10) SQL_PAGING",
 				pagingDialect.countSql(ORDER_BY_LIMIT_SQL, SQLUtils.getSQLMetaData(ORDER_BY_LIMIT_SQL))
 						.replaceAll("[\\s]+\\)", ")"));
 
@@ -122,6 +124,9 @@ public class PostgreSQLPagingDialectTest {
 					config.getProperty("password"));
 			Assertions.assertEquals(SQL + " LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, SQL, null, SQLUtils.getSQLMetaData(SQL), 10, 1));
+
+			Assertions.assertEquals(WITH_SQL + " LIMIT 10 OFFSET 0",
+					pagingDialect.pageSql(con, WITH_SQL, null, SQLUtils.getSQLMetaData(WITH_SQL), 10, 1));
 
 			Assertions.assertEquals(ORDER_BY_SQL + " LIMIT 10 OFFSET 0",
 					pagingDialect.pageSql(con, ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_SQL), 10, 1));

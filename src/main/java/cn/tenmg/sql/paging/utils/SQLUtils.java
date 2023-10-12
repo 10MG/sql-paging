@@ -7,10 +7,13 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import cn.tenmg.dsl.Script;
 import cn.tenmg.dsl.parser.JDBCParamsParser;
 import cn.tenmg.dsl.utils.DSLUtils;
+import cn.tenmg.dsl.utils.SetUtils;
+import cn.tenmg.dsl.utils.StringUtils;
 import cn.tenmg.sql.paging.SQLMetaData;
 
 /**
@@ -29,12 +32,16 @@ public abstract class SQLUtils {
 
 	private static final String WITH = "WITH", SELECT = "SELECT", FROM = "FROM", WHERE = "WHERE", GROUP = "GROUP",
 			BY = "BY", HAVING = "HAVING", ORDER = "ORDER", LIMIT = "LIMIT", OFFSET = "OFFSET", FETCH = "FETCH",
-			UNION = "UNION";
+			UNION = "UNION", AND = "AND", BLANK_SPACE_AND = " " + AND, IMPOSSIBLE = " 1=0",
+			WHERE_IMPOSSIBLE = "WHERE" + IMPOSSIBLE,
+			BLANK_SPACE_WHERE_IMPOSSIBLE = SQLUtils.BLANK_SPACE + WHERE_IMPOSSIBLE;
 
 	private static final int WITH_LEN = WITH.length(), SELECT_LEN = SELECT.length(), FROM_LEN = FROM.length(),
 			WHERE_LEN = WHERE.length(), GROUP_LEN = GROUP.length(), HAVING_LEN = HAVING.length(),
 			ORDER_LEN = ORDER.length(), LIMIT_LEN = LIMIT.length(), OFFSET_LEN = OFFSET.length(),
 			FETCH_LEN = FETCH.length();
+
+	private static final Set<String> WITH_SQL_TO_NO_RESULT_SQL_PRODUCTS = SetUtils.newHashSet("Microsoft SQL Server");
 
 	/**
 	 * 获取SQL相关数据（不对SQL做 {@code null} 校验）
@@ -196,14 +203,27 @@ public abstract class SQLUtils {
 		ResultSet rs = null;
 		String columnLabels[] = null;
 		try {
-			int firstStatmentIndexAfterGroupBy = firstStatmentIndexAfterGroupBy(sqlMetaData);
-			if (firstStatmentIndexAfterGroupBy > 0) {// GROUP BY 之后的语句（HAVING、ORDER BY等）对于获取查询结果的标题没有意义
-				namedSQL = namedSQL.substring(0, firstStatmentIndexAfterGroupBy);
+			ResultSetMetaData rsmd;
+			// 含有 WITH 字句时，SQLServer 直接调用 ps.getMetaData() 方法会报错, 因此执行一个无结果的查询得到 rs 后，再调用
+			// rs.getMetaData()
+			if (sqlMetaData.getWithIndex() >= 0
+					&& WITH_SQL_TO_NO_RESULT_SQL_PRODUCTS.contains(con.getMetaData().getDatabaseProductName())) {
+				namedSQL = toNoResultSQL(namedSQL, params, sqlMetaData);
+				Script<List<Object>> sql = DSLUtils.toScript(namedSQL, params, JDBCParamsParser.getInstance());
+				ps = con.prepareStatement(sql.getValue());
+				JDBCUtils.setParams(ps, sql.getParams());
+				rs = ps.executeQuery();
+				rsmd = rs.getMetaData();
+			} else {
+				int firstStatmentIndexAfterGroupBy = firstStatmentIndexAfterGroupBy(sqlMetaData);
+				if (firstStatmentIndexAfterGroupBy > 0) {// GROUP BY 之后的语句（HAVING、ORDER BY等）对于获取查询结果的标题没有意义
+					namedSQL = namedSQL.substring(0, firstStatmentIndexAfterGroupBy);
+				}
+				Script<List<Object>> sql = DSLUtils.toScript(namedSQL, params, JDBCParamsParser.getInstance());
+				ps = con.prepareStatement(sql.getValue());
+				JDBCUtils.setParams(ps, sql.getParams());
+				rsmd = ps.getMetaData();
 			}
-			Script<List<Object>> sql = DSLUtils.toScript(namedSQL, params, JDBCParamsParser.getInstance());
-			ps = con.prepareStatement(sql.getValue());
-			JDBCUtils.setParams(ps, sql.getParams());
-			ResultSetMetaData rsmd = ps.getMetaData();
 			int columnCount = rsmd.getColumnCount();
 			columnLabels = new String[columnCount];
 			for (int i = 1; i <= columnCount; i++) {
@@ -214,6 +234,61 @@ public abstract class SQLUtils {
 			JDBCUtils.close(ps);
 		}
 		return columnLabels;
+	}
+
+	private static String toNoResultSQL(String namedSQL, Map<String, ?> params, SQLMetaData sqlMetaData) {
+		int whereIndex = sqlMetaData.getWhereIndex(), limitIndex = sqlMetaData.getLimitIndex(),
+				firstStatmentIndexAfterWhere = firstStatmentIndexAfterWhere(sqlMetaData);
+		if (limitIndex < 0) {
+			limitIndex = sqlMetaData.getOffsetIndex();
+		}
+		if (limitIndex < 0) {
+			limitIndex = sqlMetaData.getFetchIndex();
+		}
+		if (whereIndex > 0) {
+			if (firstStatmentIndexAfterWhere > 0) {
+				if (limitIndex > firstStatmentIndexAfterWhere) {// 含LIMIT/OFFSET/FETCH子句
+					return StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), AND, IMPOSSIBLE,
+							namedSQL.substring(firstStatmentIndexAfterWhere, limitIndex));
+				} else {// 不含LIMIT/OFFSET/FETCH子句
+					return StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), AND, IMPOSSIBLE,
+							namedSQL.substring(firstStatmentIndexAfterWhere));
+				}
+			} else {
+				if (limitIndex > firstStatmentIndexAfterWhere) {// 含LIMIT/OFFSET/FETCH子句
+					return StringUtils.concat(namedSQL.substring(0, limitIndex), BLANK_SPACE_AND, IMPOSSIBLE);
+				} else {// 不含LIMIT/OFFSET/FETCH子句
+					return StringUtils.concat(namedSQL, BLANK_SPACE_AND, IMPOSSIBLE);
+				}
+			}
+		} else {
+			if (firstStatmentIndexAfterWhere > 0) {
+				if (limitIndex > firstStatmentIndexAfterWhere) {// 含LIMIT/OFFSET/FETCH子句
+					return StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), WHERE_IMPOSSIBLE,
+							namedSQL.substring(firstStatmentIndexAfterWhere, limitIndex));
+				} else {// 不含LIMIT/OFFSET/FETCH子句
+					return StringUtils.concat(namedSQL.substring(0, firstStatmentIndexAfterWhere), WHERE_IMPOSSIBLE,
+							namedSQL.substring(firstStatmentIndexAfterWhere));
+				}
+			} else {
+				if (limitIndex > firstStatmentIndexAfterWhere) {// 含LIMIT/OFFSET/FETCH子句
+					return StringUtils.concat(namedSQL.substring(0, limitIndex), BLANK_SPACE_WHERE_IMPOSSIBLE);
+				} else {// 不含LIMIT/OFFSET/FETCH子句
+					return StringUtils.concat(namedSQL, BLANK_SPACE_WHERE_IMPOSSIBLE);
+				}
+			}
+		}
+	}
+
+	private static int firstStatmentIndexAfterWhere(SQLMetaData sqlMetaData) {
+		int index = sqlMetaData.getGroupByIndex();
+		if (index < 0) {
+			index = sqlMetaData.getHavingIndex();
+		}
+		if (index < 0) {
+			index = sqlMetaData.getOrderByIndex();
+		}
+		return index;
 	}
 
 	private static int firstStatmentIndexAfterGroupBy(SQLMetaData sqlMetaData) {
