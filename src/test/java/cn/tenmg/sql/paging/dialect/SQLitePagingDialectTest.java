@@ -8,14 +8,13 @@ import java.util.Properties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
 import cn.tenmg.sql.paging.SQLPagingDialect;
 import cn.tenmg.sql.paging.utils.JDBCUtils;
 import cn.tenmg.sql.paging.utils.SQLUtils;
 
-public class SQLitePagingDialectTest {
+public class SQLitePagingDialectTest extends AbstractPagingDialectTest {
 
-	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("sqlite.properties");
+	private static final Properties config = loadConfig("sqlite.properties");
 
 	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
 			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO",

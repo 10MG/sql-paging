@@ -8,14 +8,13 @@ import java.util.Properties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
 import cn.tenmg.sql.paging.SQLPagingDialect;
 import cn.tenmg.sql.paging.utils.JDBCUtils;
 import cn.tenmg.sql.paging.utils.SQLUtils;
 
-public class OraclePagingDialectTest {
+public class OraclePagingDialectTest extends AbstractPagingDialectTest {
 
-	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("oracle.properties");
+	private static final Properties config = loadConfig("oracle.properties");
 
 	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
 			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO",
@@ -45,7 +44,7 @@ public class OraclePagingDialectTest {
 		Assertions.assertEquals(COUNT_SQL, pagingDialect.countSql(SQL, SQLUtils.getSQLMetaData(SQL)));
 
 		Assertions.assertEquals(WITH_COUNT_SQL, pagingDialect.countSql(WITH_SQL, SQLUtils.getSQLMetaData(WITH_SQL)));
-		
+
 		Assertions.assertEquals(COUNT_SQL, pagingDialect.countSql(ORDER_BY_SQL, SQLUtils.getSQLMetaData(ORDER_BY_SQL))
 				.replaceAll("[\\s]+\\)", ")").trim());
 
@@ -129,7 +128,7 @@ public class OraclePagingDialectTest {
 
 			Assertions.assertEquals(WITH_SQL + " OFFSET 0 ROW FETCH NEXT 10 ROW ONLY",
 					pagingDialect.pageSql(con, WITH_SQL, null, SQLUtils.getSQLMetaData(WITH_SQL), 10, 1));
-			
+
 			Assertions.assertEquals(ORDER_BY_SQL + " OFFSET 0 ROW FETCH NEXT 10 ROW ONLY",
 					pagingDialect.pageSql(con, ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_SQL), 10, 1));
 

@@ -8,14 +8,13 @@ import java.util.Properties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
 import cn.tenmg.sql.paging.SQLPagingDialect;
 import cn.tenmg.sql.paging.utils.JDBCUtils;
 import cn.tenmg.sql.paging.utils.SQLUtils;
 
-public class SQLServerPagingDialectTest {
+public class SQLServerPagingDialectTest extends AbstractPagingDialectTest {
 
-	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("sqlserver.properties");
+	private static final Properties config = loadConfig("sqlserver.properties");
 
 	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
 			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO",
@@ -129,9 +128,10 @@ public class SQLServerPagingDialectTest {
 					"SELECT STAFF_ID, STAFF_NAME FROM (SELECT 1 RN__, STAFF_ID,STAFF_NAME FROM STAFF_INFO ORDER BY RN__ OFFSET 0 ROW FETCH NEXT 10 ROW ONLY) SQL_PAGING",
 					pagingDialect.pageSql(con, SQL, null, SQLUtils.getSQLMetaData(SQL), 10, 1));
 
-			Assertions.assertEquals("WITH T AS (SELECT STAFF_ID, STAFF_NAME FROM STAFF_INFO WHERE STAFF_NAME LIKE :staffName) SELECT STAFF_ID, STAFF_NAME FROM (SELECT 1 RN__, * FROM T ORDER BY RN__ OFFSET 0 ROW FETCH NEXT 10 ROW ONLY) SQL_PAGING",
+			Assertions.assertEquals(
+					"WITH T AS (SELECT STAFF_ID, STAFF_NAME FROM STAFF_INFO WHERE STAFF_NAME LIKE :staffName) SELECT STAFF_ID, STAFF_NAME FROM (SELECT 1 RN__, * FROM T ORDER BY RN__ OFFSET 0 ROW FETCH NEXT 10 ROW ONLY) SQL_PAGING",
 					pagingDialect.pageSql(con, WITH_SQL, null, SQLUtils.getSQLMetaData(WITH_SQL), 10, 1));
-			
+
 			Assertions.assertEquals(ORDER_BY_SQL + " OFFSET 0 ROW FETCH NEXT 10 ROW ONLY",
 					pagingDialect.pageSql(con, ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_SQL), 10, 1));
 

@@ -8,14 +8,13 @@ import java.util.Properties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import cn.tenmg.dsl.utils.PropertiesLoaderUtils;
 import cn.tenmg.sql.paging.SQLPagingDialect;
 import cn.tenmg.sql.paging.utils.JDBCUtils;
 import cn.tenmg.sql.paging.utils.SQLUtils;
 
-public class MySQLPagingDialectTest {
+public class MySQLPagingDialectTest extends AbstractPagingDialectTest {
 
-	private static final Properties config = PropertiesLoaderUtils.loadIgnoreException("mysql.properties");
+	private static final Properties config = loadConfig("mysql.properties");
 
 	private static final String SQL = "SELECT STAFF_ID,STAFF_NAME FROM STAFF_INFO",
 			COUNT_SQL = "SELECT COUNT(*) FROM STAFF_INFO", ORDER_BY_SQL = SQL + " ORDER BY STAFF_ID,STAFF_NAME",
@@ -126,7 +125,7 @@ public class MySQLPagingDialectTest {
 
 			Assertions.assertEquals(WITH_SQL + " LIMIT 0,10",
 					pagingDialect.pageSql(con, WITH_SQL, null, SQLUtils.getSQLMetaData(WITH_SQL), 10, 1));
-			
+
 			Assertions.assertEquals(ORDER_BY_SQL + " LIMIT 0,10",
 					pagingDialect.pageSql(con, ORDER_BY_SQL, null, SQLUtils.getSQLMetaData(ORDER_BY_SQL), 10, 1));
 
