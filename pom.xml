@@ -6,7 +6,7 @@
 	<description>SQL分页查询解析框架</description>
 	<groupId>cn.tenmg</groupId>
 	<artifactId>sql-paging</artifactId>
-	<version>1.2.16</version>
+	<version>1.2.17</version>
 	<packaging>jar</packaging>
 
 	<name>sql-paging</name>
